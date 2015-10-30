@@ -1,36 +1,34 @@
 package net.cyndeline.rlgraph.subgraph.isomorphism
 
-import scalax.collection.GraphEdge.UnDiEdge
-import scalax.collection.immutable.Graph
+import scala.language.higherKinds
+import scalax.collection.GraphPredef.EdgeLikeIn
 
 /**
  * Compares pairs of elements when checking for isomorphism. Use this trait to write custom comparators
  * that only take specific properties of vertices into account when comparing two graphs.
  *
- * @tparam E Type of element to check equivalence for (vertex or edge type)
+ * @tparam N1 Node type of the pattern graph.
+ * @tparam N2 Node type in the graph to match the pattern against.
+ * @tparam E1 Edge type in the pattern graph.
+ * @tparam E2 Edge type in the graph to match the pattern against.
  */
-trait ElementEquivalence[E, EdgeType[X] <: UnDiEdge[X]] {
+//TODO delete
+trait ElementEquivalence[N1, N2, E1[X] <: EdgeLikeIn[X], E2[X] <: EdgeLikeIn[X]] {
 
   /**
-   * Compares this element to another.
-   *
-   * @param e1 An element to compare.
-   * @param e2 Another element to compare.
-   * @param contextForE1 Graph that e1 belongs to.
-   * @param contextForE2 Graph that e2 belongs to.
-   * @return True if the elements are equal, otherwise false.
+   * Compares a node from a pattern to a node in the graph that is matched against the pattern.
+   * @param n1 Node in the pattern.
+   * @param n2 node in the graph that is matched against the pattern.
+   * @return True if n2 should be considered equal to n1, otherwise false.
    */
-  def compares(e1: E, e2: E, contextForE1: Graph[E, EdgeType], contextForE2: Graph[E, EdgeType]): Boolean
+  def compareNode(n1: N1, n2: N2): Boolean
 
   /**
-   * Computes that hash code used when comparing this element, two elements that are equal (in regards to the values
-   * being sought after when performing an isomorphic search) should produce the same hash.
-   *
-   * Example: Assume a vertex element has two fields of type String and Int. If the isomorphic match only depends on
-   * the String, then only the String should be used to compute the hash.
-   *
-   * @return the hash code of the element.
+   * Compares an edge from a pattern to an edge in the graph that is matched against the pattern.
+   * @param e1 Edge in the pattern.
+   * @param e2 Edge in the graph that is matched against the pattern.
+   * @return True if e2 should be considered equal to e1, otherwise false.
    */
-  def elementHash(element: E): Int
+  def compareEdge(e1: E1[N1], e2: E2[N2]): Boolean
 
 }

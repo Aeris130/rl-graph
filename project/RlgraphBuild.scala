@@ -37,7 +37,7 @@ object RlgraphBuild extends Build {
       // R*Trees
       "com.meetup" %% "archery" % "0.4.0",
 	
-      // Tests.
+      // Tests
 
       "org.scalamock" %% "scalamock-scalatest-support" % "3.1.4" % "test",
       "org.scalatest" % "scalatest_2.11" % "2.2.0" % "test"
