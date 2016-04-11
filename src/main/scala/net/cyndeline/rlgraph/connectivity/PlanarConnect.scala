@@ -13,36 +13,36 @@ import scalax.collection.immutable.Graph
  * in each component.
  */
 class PlanarConnect[VType : TypeTag](g: Graph[VType, UnDiEdge]) {
-  private val graphAndEdges = computeGraphAndEdges
 
   /** @return The graph after it has been connected. */
-  def graph: Graph[VType, UnDiEdge] = graphAndEdges._1
+  def graph: Graph[VType, UnDiEdge] = computeGraphAndEdges._1
 
   /** @return Every edge that was added to achieve connectivity. */
-  def extraEdges: Vector[(VType, VType)] = graphAndEdges._2
+  def extraEdges: Vector[(VType, VType)] = computeGraphAndEdges._2
 
-  private def computeGraphAndEdges: (Graph[VType, UnDiEdge], Vector[(VType, VType)]) = {
+  private val computeGraphAndEdges: (Graph[VType, UnDiEdge], Vector[(VType, VType)]) = {
     var allComponents = computeConnectedComponents(g)
 
-    if (allComponents.isEmpty)
-      return (Graph[VType, UnDiEdge](), Vector[(VType, VType)]())
-
-    val allEdges = new ListBuffer[(VType, VType)]()
-    var currentGraph = g
-    var previousComponent = allComponents.head
-    allComponents = allComponents.drop(1)
-
-    while (!allComponents.isEmpty) {
-      val nextComponent = allComponents.head
-      val lowestDegreePrevious = lowestDegreeVertex(currentGraph, previousComponent)
-      val lowestDegreeNext = lowestDegreeVertex(currentGraph, nextComponent)
-      allEdges += ((lowestDegreePrevious, lowestDegreeNext))
-      currentGraph += lowestDegreePrevious~lowestDegreeNext
+    if (allComponents.isEmpty) {
+      (Graph[VType, UnDiEdge](), Vector[(VType, VType)]())
+    } else {
+      val allEdges = new ListBuffer[(VType, VType)]()
+      var currentGraph = g
+      var previousComponent = allComponents.head
       allComponents = allComponents.drop(1)
-      previousComponent = nextComponent
-    }
 
-    (currentGraph, allEdges.toVector)
+      while (allComponents.nonEmpty) {
+        val nextComponent = allComponents.head
+        val lowestDegreePrevious = lowestDegreeVertex(currentGraph, previousComponent)
+        val lowestDegreeNext = lowestDegreeVertex(currentGraph, nextComponent)
+        allEdges += ((lowestDegreePrevious, lowestDegreeNext))
+        currentGraph += lowestDegreePrevious~lowestDegreeNext
+        allComponents = allComponents.drop(1)
+        previousComponent = nextComponent
+      }
+
+      (currentGraph, allEdges.toVector)
+    }
   }
 
   private def lowestDegreeVertex(g: Graph[VType, UnDiEdge], vs: Set[VType]): VType = vs.minBy(g.get(_).degree)
@@ -51,7 +51,7 @@ class PlanarConnect[VType : TypeTag](g: Graph[VType, UnDiEdge]) {
     var current = graph
     val result = new ListBuffer[Set[VType]]()
 
-    while (!current.isEmpty) {
+    while (current.nonEmpty) {
       val arbitraryStart = current.nodes.head
       val reachedNodes = arbitraryStart.outerNodeTraverser.withKind(GraphTraversal.DepthFirst).toSet
       result += reachedNodes.toSet

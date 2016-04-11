@@ -1,7 +1,7 @@
 package rlgraph.integration.cartogram
 
 import net.cyndeline.rlgraph.cartogram.rectangular.linearProgramming.LinearOptimization
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.RectangularLayout
+import net.cyndeline.rlgraph.drawings.planar.rectangular.RectangularLayout
 import rlgraph.SpecImports
 import rlgraph.help.ConstraintRoom
 

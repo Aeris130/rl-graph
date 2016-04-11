@@ -11,7 +11,8 @@ import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.immutable.Graph
 
 /**
- * Computes every simple cycle in a directed graph using the algorithm by Donald B. Johnson.
+ * Computes every simple cycle in a directed graph using the algorithm by Donald B. Johnson. Runtime complexity
+  * O(((V+E)C).
  *
  * @param maxSize The highest amount of vertices permitted in a single cycle. Larger cycles will be discarded.
  */

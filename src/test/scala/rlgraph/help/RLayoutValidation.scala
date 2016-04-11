@@ -1,8 +1,9 @@
 package rlgraph.help
 
-import net.cyndeline.rlcommon.util.{Intersection, Point}
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.RectangularLayout
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.dataStructure.Rectangle
+import net.cyndeline.rlcommon.math.geom.Point
+import net.cyndeline.rlcommon.util.Intersection
+import net.cyndeline.rlgraph.drawings.planar.rectangular.RectangularLayout
+import net.cyndeline.rlgraph.drawings.planar.rectangular.dataStructure.Rectangle
 import net.cyndeline.rlgraph.util.GraphCommons
 import org.scalatest.FunSpec
 

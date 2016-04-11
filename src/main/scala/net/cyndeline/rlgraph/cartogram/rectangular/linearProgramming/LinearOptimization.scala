@@ -3,8 +3,8 @@ package net.cyndeline.rlgraph.cartogram.rectangular.linearProgramming
 import net.cyndeline.rlcommon.util.{HeightConstraint, WidthConstraint}
 import net.cyndeline.rlgraph.cartogram.rectangular.common.{Constraint, _}
 import net.cyndeline.rlgraph.cartogram.rectangular.linearProgramming.linearSolver.{LinearChocoSolver, LinearSolver}
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.RectangularLayout
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.dataStructure.Rectangle
+import net.cyndeline.rlgraph.drawings.planar.rectangular.RectangularLayout
+import net.cyndeline.rlgraph.drawings.planar.rectangular.dataStructure.Rectangle
 
 import scalax.collection.GraphEdge.UnDiEdge
 

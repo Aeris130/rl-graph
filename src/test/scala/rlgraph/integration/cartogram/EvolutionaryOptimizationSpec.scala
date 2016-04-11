@@ -3,7 +3,7 @@ package rlgraph.integration.cartogram
 import net.cyndeline.rlgraph.cartogram.rectangular.evolution.EvolutionaryOptimization
 import net.cyndeline.rlgraph.cartogram.rectangular.evolution.metrics.{AspectRatio, CartographicError}
 import net.cyndeline.rlgraph.cartogram.rectangular.segmentHeuristic.SegmentHeuristic
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.RectangularDualAlgorithm
+import net.cyndeline.rlgraph.drawings.planar.rectangular.RectangularDualAlgorithm
 import rlgraph.SpecImports
 import rlgraph.help.{ConstraintIdRoom, RLayoutValidation}
 

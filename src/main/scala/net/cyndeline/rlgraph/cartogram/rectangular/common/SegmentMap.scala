@@ -1,8 +1,8 @@
 package net.cyndeline.rlgraph.cartogram.rectangular.common
 
 import archery.{Box, Entry, Geom, RTree}
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.RectangularLayout
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.dataStructure.Rectangle
+import net.cyndeline.rlgraph.drawings.planar.rectangular.RectangularLayout
+import net.cyndeline.rlgraph.drawings.planar.rectangular.dataStructure.Rectangle
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -102,6 +102,7 @@ class SegmentMap[V, E[X] <: UnDiEdge[X]](initialLayout: RectangularLayout[V, E])
   /**
    * Takes each segment in an RTree and maps its rectangles to a new common segment, split between maps representing
    * the directions the rectangle can be bound from.
+ *
    * @return The next segment id assignable.
    */
   private def mapRectanglesToSegments(tree: RTree[Vector[RectangleEntry]],

@@ -1,7 +1,7 @@
 package rlgraph.unit.cartogram.rectangular
 
 import net.cyndeline.rlgraph.cartogram.rectangular.common.SegmentMap
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.RectangularLayout
+import net.cyndeline.rlgraph.drawings.planar.rectangular.RectangularLayout
 import rlgraph.SpecImports
 
 import scalax.collection.GraphEdge.UnDiEdge

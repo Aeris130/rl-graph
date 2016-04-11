@@ -71,6 +71,7 @@ class DFSComponentSearch[VType, EType[X] <: UnDiEdge[X]] extends BiconnectedComp
   private def componentSearch(graph: Graph[VType, EType],
                               vertexInfo: mutable.HashMap[VType, VertexInfo],
                               biconnectivityCheck: Boolean): Vector[(Graph[VType, EType], Set[VType])] = {
+    require(!graph.edges.exists(_.isDirected), "Cannot compute biconnected components of a directed graph: " + graph.edges.find(_.isDirected).get)
     var result: Vector[Graph[VType, EType]] = Vector[Graph[VType, EType]]()
     val count = 0
 

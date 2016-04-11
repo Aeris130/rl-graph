@@ -1,7 +1,7 @@
 package rlgraph.unit.cartogram.rectangular
 
 import net.cyndeline.rlgraph.cartogram.rectangular.common.{SegmentsOfRectangle, _}
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.dataStructure.Rectangle
+import net.cyndeline.rlgraph.drawings.planar.rectangular.dataStructure.Rectangle
 import rlgraph.SpecImports
 
 class AdjacencyConstraintsSpec extends SpecImports {

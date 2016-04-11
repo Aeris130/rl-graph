@@ -3,8 +3,8 @@ package net.cyndeline.rlgraph.cartogram.rectangular.evolution.metrics
 import net.cyndeline.rlcommon.util.Geom
 import net.cyndeline.rlgraph.cartogram.rectangular.common.MapArea
 import net.cyndeline.rlgraph.cartogram.rectangular.evolution.FitnessScore
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.RectangularLayout
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.dataStructure.Rectangle
+import net.cyndeline.rlgraph.drawings.planar.rectangular.RectangularLayout
+import net.cyndeline.rlgraph.drawings.planar.rectangular.dataStructure.Rectangle
 
 import scalax.collection.GraphEdge.UnDiEdge
 

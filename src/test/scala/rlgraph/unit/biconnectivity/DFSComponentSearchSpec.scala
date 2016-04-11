@@ -49,6 +49,21 @@ class DFSComponentSearchSpec extends SpecImports {
 
     }
 
+    it ("should throw an error for directed graphs") {
+      val f = fixture
+      import f._
+
+      Given("a graph with three vertices and three directed edges")
+      val graph = Graph[Int, UnDiEdge](1~>2, 2~>3, 1~>3)
+
+      When("computing biconnected components")
+      Then("an error should be thrown")
+      intercept[IllegalArgumentException] {
+        dfsComponentSearch.components(graph)
+      }
+
+    }
+
     /*
      * Biconnected components
      */

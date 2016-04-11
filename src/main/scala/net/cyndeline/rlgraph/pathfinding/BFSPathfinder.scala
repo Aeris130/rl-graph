@@ -4,6 +4,7 @@ import net.cyndeline.rlgraph.util.GraphCommons
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.language.higherKinds
 import scalax.collection.GraphPredef.EdgeLikeIn
 import scalax.collection.immutable.Graph
 
@@ -58,7 +59,7 @@ class BFSPathfinder {
     vertexQueue.enqueue(from)
 
     var goalFound = false
-    while(!vertexQueue.isEmpty && !goalFound) {
+    while(vertexQueue.nonEmpty && !goalFound) {
       val next = vertexQueue.dequeue()
       val out = graph.get(next).outgoing // Both directed and undirected edges
         .filter(e => !visited.contains(GraphCommons.oppositeVertex(next, e.toOuter)))

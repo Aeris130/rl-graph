@@ -3,8 +3,8 @@ package net.cyndeline.rlgraph.cartogram.rectangular.segmentHeuristic
 import net.cyndeline.rlgraph.cartogram.rectangular.common._
 import net.cyndeline.rlgraph.cartogram.rectangular.segmentHeuristic.help.MoveDir._
 import net.cyndeline.rlgraph.cartogram.rectangular.segmentHeuristic.help.{MovementChange, RectangleEntry, SegmentEntry, ValidMovement}
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.RectangularLayout
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.dataStructure.Rectangle
+import net.cyndeline.rlgraph.drawings.planar.rectangular.RectangularLayout
+import net.cyndeline.rlgraph.drawings.planar.rectangular.dataStructure.Rectangle
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer

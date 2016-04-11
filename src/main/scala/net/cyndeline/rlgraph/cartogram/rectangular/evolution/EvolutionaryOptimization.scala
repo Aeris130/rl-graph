@@ -3,8 +3,8 @@ package net.cyndeline.rlgraph.cartogram.rectangular.evolution
 import net.cyndeline.rlcommon.util.ProbabilityCollection
 import net.cyndeline.rlgraph.cartogram.rectangular.common.MapArea
 import net.cyndeline.rlgraph.cartogram.rectangular.segmentHeuristic.SegmentHeuristic
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.dataStructure.RVertex
-import net.cyndeline.rlgraph.planarGraphDrawing.rectangular.{RELDualAlgorithm, RectangularLayout}
+import net.cyndeline.rlgraph.drawings.planar.rectangular.dataStructure.RVertex
+import net.cyndeline.rlgraph.drawings.planar.rectangular.{RELDualAlgorithm, RectangularLayout}
 import net.cyndeline.rlgraph.regularEdgeLabeling.EdgeLabeling
 import net.cyndeline.rlgraph.regularEdgeLabeling.altFourCycles.{AlternatingFourCycles, FourCycle}
 
