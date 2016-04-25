@@ -1,6 +1,7 @@
 package net.cyndeline.rlgraph.planar.demoucron.operation
 
 import net.cyndeline.rlgraph.biconnectivity.components.DFSComponentSearch
+import net.cyndeline.rlgraph.cycles.UndirectedSingleCycleFinder
 import net.cyndeline.rlgraph.embedding.Embedding
 import net.cyndeline.rlgraph.embedding.immutable.UndirectedEmbedding
 import net.cyndeline.rlgraph.face.{Face, FaceComputation}
@@ -10,6 +11,7 @@ import net.cyndeline.rlgraph.planar.demoucron.operation.help.{Fragment, Fragment
 import net.cyndeline.rlgraph.util.GraphCommons
 
 import scala.collection.mutable.ArrayBuffer
+import scala.language.higherKinds
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 import scalax.collection.GraphEdge.UnDiEdge
@@ -27,6 +29,7 @@ class DemoucronEmbedding[VType: TypeTag : ClassTag, EType[X] <: UnDiEdge[X]] ext
   private val componentComputation = new DFSComponentSearch[VType, UnDiEdge]()
   private val merger = new TreeEmbedMerger[VType, UnDiEdge]()
   private val pathEmbedder = new PathEmbedder[VType]()
+  private val cycleFinder = new UndirectedSingleCycleFinder[VType, UnDiEdge]()
 
   /**
    * Embeds a planar graph.
@@ -48,24 +51,24 @@ class DemoucronEmbedding[VType: TypeTag : ClassTag, EType[X] <: UnDiEdge[X]] ext
     while (compIt.hasNext) {
       val component: Graph[VType, UnDiEdge] = compIt.next()
 
-      /* Choose a cycle of G this is a planar graph G’ together with a embedding */
-      val initialCycle: Option[component.Cycle] = component.findCycle
+      /* Choose a cycle of G this is a planar graph G’ together with an embedding */
+      val initialCycle = cycleFinder.findCycle(component)
       var embedding: Embedding[VType] = null
 
       if (initialCycle.isDefined) {
-        val cycle: Vector[VType] = (for (n <- initialCycle.get.nodes) yield {
+        val cycle: Vector[VType] = (for (n <- initialCycle.get.vertices) yield {
             val node: VType = n
             node
-          }).toVector
+          }) :+ initialCycle.get.vertices.head
 
         var cycleGraph = undiGraph.empty
-        for (edge <- initialCycle.get.edges) cycleGraph = cycleGraph + edge
+        for (edge <- initialCycle.get.edges) cycleGraph = cycleGraph + GraphCommons.outerEdgeNeighbors(edge._1, undiGraph).find(n => n._1 == edge._2).get._2
 
         embedding = pathEmbedder.embedCycle(cycle, UndirectedEmbedding[VType]())
         var fragments: Vector[Fragment[VType, UnDiEdge]] = fragmentComputation.compute(component, cycleGraph)
 
         /* When no more fragments are present, the entire component has been embedded. */
-        while (!fragments.isEmpty) {
+        while (fragments.nonEmpty) {
           val faces: Vector[Face[VType]] = faceComputation.computeFaces(embedding)
           val allAdmissibleFragmentsAndfaces = admissibleFaces(fragments, faces)
 
@@ -113,15 +116,6 @@ class DemoucronEmbedding[VType: TypeTag : ClassTag, EType[X] <: UnDiEdge[X]] ext
    */
   def isPlanar(graph: Graph[VType, EType]): Boolean = embed(graph).isDefined
 
-  private def findInsertEntry(node: VType, face: List[VType], head: Option[VType] = None): VType = {
-    val h = if (head.isEmpty) face(0) else head.get
-
-    face match {
-      case entry::Nil => head.get
-      case entry::rest => if (entry == node) rest(0) else findInsertEntry(node, rest, Option(h))
-    }
-  }
-
   /**
    * Computes every admissible face for every fragment. The returned list is sorted so that the fragment with the
    * least amount of admissible faces occur first in the list.
@@ -143,11 +137,11 @@ class DemoucronEmbedding[VType: TypeTag : ClassTag, EType[X] <: UnDiEdge[X]] ext
 
   private def makeUndirectedGraph(graph: Graph[VType, EType]): Graph[VType, UnDiEdge] = {
     val undiEdges = new ArrayBuffer[UnDiEdge[VType]]()
-    for (edge <- graph.edges.toOuter.toSet[EType[VType]]) {
+    for (edge <- graph.edges.toOuter) {
       undiEdges += (edge._1~edge._2)
     }
 
-    Graph.from(graph.nodes.toOuter.toSet[VType], undiEdges.toVector)
+    Graph.from(graph.nodes.toOuter, undiEdges.toVector)
   }
 
 }

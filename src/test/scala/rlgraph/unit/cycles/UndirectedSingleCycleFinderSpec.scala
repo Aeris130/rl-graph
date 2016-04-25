@@ -154,7 +154,14 @@ class UndirectedSingleCycleFinderSpec extends SpecImports {
 
     }
 
-    it ("should be deterministic") {
+    it ("sdsd") {
+
+      val g = Graph[Int, UnDiEdge](1, 2, 3, 4, 5, 1~2, 1~3, 1~4, 1~5, 2~3, 2~4, 2~5, 3~4, 3~5, 4~5)
+      val c = cycleFinder.findCycle(g)
+      assert(c.isDefined)
+    }
+
+    it ("should be deterministic when using a starting vertex") {
 
       Given("a graph with two cycles 1, 2, 3, 4 and 1, 2, 5, 6")
       When("finding a cycle that starts with 1 repeated 100 times")
@@ -171,5 +178,24 @@ class UndirectedSingleCycleFinderSpec extends SpecImports {
       }
 
     }
+
+    it ("should be deterministic when using an arbitrary starting vertex") {
+
+      Given("a graph with two cycles 1, 2, 3, 4 and 1, 2, 5, 6")
+      When("finding a cycle 100 times")
+      val allCycles = for (i <- 0 until 100) yield {
+        val graph = Graph(1~2, 2~3, 3~4, 4~1, 1~2, 2~5, 5~6, 6~1) // new graph created every time in case instantiation is random in some aspect
+        cycleFinder.findCycle(graph).get
+      }
+      val cyclePairs = allCycles.zip(allCycles.tail)
+
+      Then("every cycle should be equal")
+      for (pair <- cyclePairs) {
+        if (pair._1 != pair._2)
+          fail(pair._1 + " was not equal to " + pair._2)
+      }
+
+    }
+
   }
 }

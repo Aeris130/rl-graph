@@ -108,6 +108,32 @@ class UndirectedEmbeddingSpec extends SpecImports {
 
     }
 
+    it ("should yield a clockwise iterator starting at a vertex") {
+
+      Given("a vertex 1 with neighbors 2, 3, 4, 5, 6 embedded around it in that order")
+      val embedding = UndirectedEmbedding[Int]().embed(1, 2).embed(1, 3).embed(1, 4).embed(1, 5).embed(1, 6)
+
+      When("creating a clockwise iterator starting at vertex 4")
+      val ci = embedding.embeddingFor(1).clockwiseIteratorFrom(4)
+
+      Then("the iterator should be 4, 5, 6, 2, 3")
+      ci.toVector.map(_.adjacentVertex) should be (Vector(4, 5, 6, 2, 3))
+
+    }
+
+    it ("should yield a counter-clockwise iterator starting at a vertex") {
+
+      Given("a vertex 1 with neighbors 2, 3, 4, 5, 6 embedded around it in that order")
+      val embedding = UndirectedEmbedding[Int]().embed(1, 2).embed(1, 3).embed(1, 4).embed(1, 5).embed(1, 6)
+
+      When("creating a clockwise iterator starting at vertex 4")
+      val ci = embedding.embeddingFor(1).counterClockwiseIteratorFrom(4)
+
+      Then("the iterator should be 4, 3, 2, 6, 5")
+      ci.toVector.map(_.adjacentVertex) should be (Vector(4, 3, 2, 6, 5))
+
+    }
+
     it ("should link a single adjacency entry to itself") {
 
       Given("an empty embedding")

@@ -214,8 +214,16 @@ class BiconnectivityOperationSpec extends SpecImports {
       When("biconnecting the graph")
       val result = connecter.biconnect(graph)
 
-      Then("the result should contain the edge 1~4")
-      result.extraEdges.map(UnorderedPair(_)) should be (Vector(UnorderedPair(1, 4)))
+      Then("the result should contain the edge 1~4 or 1~3, 2~4")
+      val edges = result.extraEdges.map(UnorderedPair(_))
+      if (edges.size == 1)
+        edges should be (Vector(UnorderedPair(1, 4)))
+      else if (edges.size == 2) {
+        edges should contain (UnorderedPair(1, 3))
+        edges should contain (UnorderedPair(2, 4))
+      } else {
+        fail("The expected edges were not present: " + edges)
+      }
 
     }
 

@@ -2,6 +2,8 @@ package net.cyndeline.rlgraph.embedding.immutable
 
 import net.cyndeline.rlgraph.embedding.{AdjacencyEntry, AdjacencyList}
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
  * Serves as both adjacency list as well as individual adjacency entries.
  *
@@ -91,7 +93,39 @@ class VertexEntry[V](val vertexIndex: Int, val currentAdjacencyIndex: Int, val e
    */
   override def iterator: Iterator[AdjacencyEntry[V]] = {
     val adjacencyList: Vector[Int] = embedding.adjacencyLists(vertexIndex)._2
-    (for (i <- 0 until adjacencyList.size) yield new VertexEntry(vertexIndex, i, embedding)).iterator
+    (for (i <- adjacencyList.indices) yield new VertexEntry(vertexIndex, i, embedding)).iterator
+  }
+
+  /**
+    * @param v A vertex member of this adjacency list.
+    * @return Vertices of this adjacency list as they are embedded, starting at vertex v.
+    */
+  override def clockwiseIteratorFrom(v: V): Iterator[AdjacencyEntry[V]] = {
+    val l = new ArrayBuffer[AdjacencyEntry[V]]()
+    var current = entryFor(v)
+
+    do {
+      l += current
+      current = current.next
+    } while (current.adjacentVertex != v)
+
+    l.toIterator
+  }
+
+  /**
+    * @param v A vertex member of this adjacency list.
+    * @return Vertices of this adjacency list as they are visited when traversing the list counter clockwise.
+    */
+  override def counterClockwiseIteratorFrom(v: V): Iterator[AdjacencyEntry[V]] = {
+    val l = new ArrayBuffer[AdjacencyEntry[V]]()
+    var current = entryFor(v)
+
+    do {
+      l += current
+      current = current.previous
+    } while (current.adjacentVertex != v)
+
+    l.toIterator
   }
 
   /**
@@ -159,7 +193,7 @@ class VertexEntry[V](val vertexIndex: Int, val currentAdjacencyIndex: Int, val e
     if (vertex == this.vertex)
       throw new Error("The vertex " + vertex + " cannot contain entries for itself.")
 
-    embedding.vertexIndices.get(vertex).getOrElse(-1)
+    embedding.vertexIndices.getOrElse(vertex, -1)
   }
 
   private def nextIndex(i: Int): Int = if (i == size - 1) 0 else i + 1

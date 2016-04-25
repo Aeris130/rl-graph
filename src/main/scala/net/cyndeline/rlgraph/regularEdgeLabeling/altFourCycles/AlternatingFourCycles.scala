@@ -2,7 +2,7 @@ package net.cyndeline.rlgraph.regularEdgeLabeling.altFourCycles
 
 import net.cyndeline.rlcommon.util.UnorderedPair
 import net.cyndeline.rlgraph.cycles.Cycle
-import net.cyndeline.rlgraph.face.{FaceComputation, FaceMembershipManager}
+import net.cyndeline.rlgraph.face.{Face, FaceComputation, FaceMembershipManager}
 import net.cyndeline.rlgraph.regularEdgeLabeling.angularMap.{AngularMap, AngularVertex}
 import net.cyndeline.rlgraph.regularEdgeLabeling.{EdgeLabeling, LabelEdge}
 
@@ -92,7 +92,7 @@ object AlternatingFourCycles {
     val cycleValidation = new CycleVerifier()
     val fourCycles: Vector[Cycle[V]] = new FourCycleFinder[V]().findAlternatingFourCycles(rel)
     val faces = new FaceComputation[V]().computeFaces(rel.originalEmbedding)
-    val fManager: FaceMembershipManager[V] = new FaceMembershipManager(faces)
+    val fManager: FaceMembershipManager[V, Face[V]] = new FaceMembershipManager(faces)
     val regularToAngular = angles.angularEmbedding.embeddedVertices.filter(_.isBlack).map(bv => bv.vertex -> bv).toMap
 
     val faceCycles = computeRectangularFaceCycles(angles, cycleValidation, rel)
@@ -156,7 +156,7 @@ object AlternatingFourCycles {
   private def computeEighthCycles[V](cycles: Vector[Cycle[V]],
                                    map: AngularMap[V],
                                    regularToAngular: Map[V, AngularVertex[V]],
-                                   faceManager: FaceMembershipManager[V],
+                                   faceManager: FaceMembershipManager[V, Face[V]],
                                    rel: EdgeLabeling[V]): Vector[CycleData[V]] = {
     val result = new ListBuffer[CycleData[V]]()
 
@@ -237,7 +237,7 @@ object AlternatingFourCycles {
    * Eight-cycle help methods
    */
 
-  private def eightCycleIsValid[V](cycle: Cycle[V], map: AngularMap[V], regularToAngular: Map[V, AngularVertex[V]], faceManager: FaceMembershipManager[V]): Boolean = {
+  private def eightCycleIsValid[V](cycle: Cycle[V], map: AngularMap[V], regularToAngular: Map[V, AngularVertex[V]], faceManager: FaceMembershipManager[V, Face[V]]): Boolean = {
     val whiteVertices = (for (e <- cycle.edges) yield map.faceVertex(faceManager.leftFace(e))).toSet
 
     for (e <- cycle.edges) {

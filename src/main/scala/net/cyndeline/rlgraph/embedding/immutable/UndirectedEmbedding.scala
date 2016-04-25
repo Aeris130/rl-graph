@@ -56,14 +56,14 @@ class UndirectedEmbedding[VType] private (val vertexIndices: Map[VType, Int],
    *         embedding.
    */
   override def embeddingFor(vertex: VType): AdjacencyList[VType] = {
-    val vertexIndex = vertexIndices.get(vertex).getOrElse(throw new NoSuchElementException("The vertex " + vertex + " was not embedded.") )
+    val vertexIndex = vertexIndices.getOrElse(vertex, throw new NoSuchElementException("The vertex " + vertex + " was not embedded."))
     embeddingFor(vertexIndex)
   }
 
   /**
    * @return every vertex in the embedding.
    */
-  override def embeddedVertices: Vector[VType] = adjacencyLists.map(_._1)
+  override lazy val embeddedVertices: Vector[VType] = adjacencyLists.map(_._1)
 
   /**
    * @return Every embedded edge in O(n) time.
@@ -101,7 +101,7 @@ class UndirectedEmbedding[VType] private (val vertexIndices: Map[VType, Int],
    * @return every vertex and its head entry in the embedding in O(n) time.
    */
   override def iterator: Iterator[(VType, AdjacencyList[VType])] = {
-    (for (i <- 0 until adjacencyLists.size) yield {
+    (for (i <- adjacencyLists.indices) yield {
       val index = if (adjacencyLists(i)._2.isEmpty) -1 else 0
       (adjacencyLists(i)._1, new VertexEntry(i, index, this))
     }).toIterator
@@ -242,7 +242,7 @@ class UndirectedEmbedding[VType] private (val vertexIndices: Map[VType, Int],
     for (entry <- adjacencies) {
       val vertexIndex = currentIds(entry._1)
       val adjacencyList = entry._2.map(currentIds(_))
-      val positions = (for (i <- 0 until adjacencyList.size) yield adjacencyList(i) -> i).toMap
+      val positions = (for (i <- adjacencyList.indices) yield adjacencyList(i) -> i).toMap
       currentAdjacencies = currentAdjacencies.updated(vertexIndex, (entry._1, adjacencyList))
       currentPositions = currentPositions + (vertexIndex -> positions)
     }
@@ -271,7 +271,7 @@ class UndirectedEmbedding[VType] private (val vertexIndices: Map[VType, Int],
     val index = vertexIndices(vertex)
     val adjacencies = adjacencyLists(index)._2
 
-    if (!adjacencies.isEmpty) {
+    if (adjacencies.nonEmpty) {
       edgeDeletion(index, adjacencies.head).deleteVertex(vertex)
 
     } else {
@@ -376,7 +376,7 @@ class UndirectedEmbedding[VType] private (val vertexIndices: Map[VType, Int],
       finalAdjacencyVector = finalAdjacencyVector.updated(currentIndex, (c, currentAdjacencies))
       updatedPositions = adjustNeighborCoordinates(currentIndex, positionOfInsertVertexInCommonVertex, newAdjacencies.size, updatedPositions)
 
-      for (i <- 0 until newAdjacencies.size) {
+      for (i <- newAdjacencies.indices) {
         val insertPos = positionOfInsertVertexInCommonVertex + i
         val neighborIndex = currentAdjacencies(insertPos)
         updatedPositions = addNeighborPosition(currentIndex, neighborIndex, insertPos, updatedPositions)
@@ -469,7 +469,7 @@ class UndirectedEmbedding[VType] private (val vertexIndices: Map[VType, Int],
                                            adjacencyList: Vector[(VType, Vector[Int])],
                                            positions: Map[Int, Map[Int, Int]]): (Vector[(VType, Vector[Int])], Map[Int, Map[Int, Int]]) = {
     val adjacencies = adjacencyList(vertex)._2.reverse
-    val reversedPositionMap: IndexedSeq[(Int, Int)] = for (i <- 0 until adjacencies.size) yield adjacencies(i) -> i
+    val reversedPositionMap: IndexedSeq[(Int, Int)] = for (i <- adjacencies.indices) yield adjacencies(i) -> i
 
     (adjacencyList.updated(vertex, (adjacencyList(vertex)._1, adjacencies)), positions + (vertex -> reversedPositionMap.toMap))
   }
@@ -526,8 +526,8 @@ class UndirectedEmbedding[VType] private (val vertexIndices: Map[VType, Int],
   private def positionOfNeighborInVertex(vertex: Int, neighbor: Int): Int = adjacencyPositions(vertex)(neighbor)
 
   private def embeddingExists(a: VType, b: VType): Boolean = {
-    val aIndex = vertexIndices.get(a).getOrElse(return false)
-    val bIndex = vertexIndices.get(b).getOrElse(return false)
+    val aIndex = vertexIndices.getOrElse(a, return false)
+    val bIndex = vertexIndices.getOrElse(b, return false)
     val aEntry = embeddingFor(aIndex)
     val bEntry = embeddingFor(bIndex)
 

@@ -1,4 +1,4 @@
-package net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold
+package net.cyndeline.rlgraph.drawings
 
 import net.cyndeline.rlcommon.math.geom.Rectangle
 

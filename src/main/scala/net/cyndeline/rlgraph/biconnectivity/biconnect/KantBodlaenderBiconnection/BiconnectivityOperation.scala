@@ -5,7 +5,7 @@ import net.cyndeline.rlgraph.biconnectivity.biconnect.KantBodlaenderBiconnection
 import net.cyndeline.rlgraph.biconnectivity.{Biconnecter, GraphBiconnection}
 import net.cyndeline.rlgraph.connectivity.PlanarConnect
 import net.cyndeline.rlgraph.embedding.Vertex
-import net.cyndeline.rlgraph.planar.boyerMyrwold.BoyerMyrwoldEmbedder
+import net.cyndeline.rlgraph.planar.demoucron.operation.DemoucronEmbedding
 import net.cyndeline.rlgraph.sorting.DFSOrder
 import net.cyndeline.rlgraph.util.SortedGraph
 
@@ -44,7 +44,7 @@ class BiconnectivityOperation[VType : TypeTag : ClassTag] extends Biconnecter[VT
     if (cutpointsInGraph.isEmpty)
       return GraphBiconnection(connectedGraph, connectivityData.extraEdges)
 
-    var embedding = new BoyerMyrwoldEmbedder[VType]().embed(connectedGraph).get
+    var embedding = new DemoucronEmbedding[VType, UnDiEdge]().embed(connectedGraph).get
 
     /* Perform a depth first search from an arbitrary vertex and order the vertices of the graph in their
      * visitation order.
@@ -52,7 +52,7 @@ class BiconnectivityOperation[VType : TypeTag : ClassTag] extends Biconnecter[VT
     val cutpointsInDFSOrder = DFSOrder(connectedGraph, cutpointsInGraph.head)
 
     /* Keeps track of which vertex pairs has had biconnection edges added between each other. Each Set in the Set
-     * contains exatcly two vertices. Sets are used since it doesn't matter which order they were added in.
+     * contains exactly two vertices. Sets are used since it doesn't matter which order they were added in.
      */
     var addedEdges = Set[Set[VType]]()
 

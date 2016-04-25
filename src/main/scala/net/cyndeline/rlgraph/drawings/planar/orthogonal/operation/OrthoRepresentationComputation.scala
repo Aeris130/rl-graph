@@ -9,6 +9,7 @@ import net.cyndeline.rlgraph.drawings.planar.orthogonal.network.MaxFlowMinCost.M
 import net.cyndeline.rlgraph.drawings.planar.orthogonal.network.util.NetworkRepresentation
 import net.cyndeline.rlgraph.drawings.planar.orthogonal.representation.OrthogonalFaceFactory
 import net.cyndeline.rlgraph.drawings.planar.orthogonal.representation.help.{OrthogonalDartRep, VertexWrapperFactory}
+import net.cyndeline.rlgraph.planar.demoucron.operation.DemoucronEmbedding
 import net.cyndeline.rlgraph.util.GraphConverter
 
 import scala.reflect.ClassTag
@@ -26,7 +27,7 @@ import scalax.collection.immutable.Graph
 class OrthoRepresentationComputation[VType : TypeTag : ClassTag, EType[X] <: UnDiEdge[X]: ({type l[M[_]] = TypeTag[M[VType]]})#l]
   (wrapperFactory: VertexWrapperFactory[VType]){
   private val faceComputation: ComputeFaceOperation[VType] = new FaceComputation[VType]()
-  private val planar: PlanarEmbedOperation[VType, UnDiEdge] = new BoyerMyrwoldEmbedder[VType]()
+  private val planar: PlanarEmbedOperation[VType, UnDiEdge] = new DemoucronEmbedding[VType, UnDiEdge]()
   private val flowNetworkComputation = new FlowNetworkConstructor()
   private val maxFlowMinCost = new MaxFlowMinCost()
   private val orthoFaceFactory = new OrthogonalFaceFactory(wrapperFactory)

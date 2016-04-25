@@ -2,6 +2,7 @@ package net.cyndeline.rlgraph.cycles
 
 import net.cyndeline.rlgraph.util.GraphCommons
 
+import scala.language.higherKinds
 import scalax.collection.GraphPredef.EdgeLikeIn
 import scalax.collection.immutable.Graph
 
@@ -30,8 +31,7 @@ class UndirectedSingleCycleFinder[VType, EType[X] <: EdgeLikeIn[X]](vertexFilter
    */
   def findCycle(graph: Graph[VType, EType]): Option[Cycle[VType]] = {
     val start = graph.nodes.find(vertexFilter(_)).getOrElse( return None )
-    val cycle = computeUnknownCycle(start, start, graph, Set())
-    Some(Cycle(cycle.getOrElse(return None)._3))
+    findCycleFromVertex(start, graph)
   }
 
   /**
@@ -50,38 +50,6 @@ class UndirectedSingleCycleFinder[VType, EType[X] <: EdgeLikeIn[X]](vertexFilter
     } else {
       None
     }
-  }
-
-  /**
-   * Recursively finds any cycle in a graph, if one exists.
-   * @param current The current vertex being visited.
-   * @param parent The vertex visited before the current vertex.
-   * @param graph The graph being examined.
-   * @param visited Set of all nodes visited so far.
-   * @return None if no cycle has been found. If a cycle is found, the first vertex that was encountered a second time,
-   *         followed by true if the algorithm is still appending vertices to the cycle, and the current cycle list.
-   */
-  private def computeUnknownCycle(current: VType,
-                                  parent: VType, // Needed to ignore the parent when checking children
-                                  graph: Graph[VType, EType],
-                                  visited: Set[VType]): Option[(VType, Boolean, Vector[VType])] = {
-    if (visited.contains(current)) {
-      return Some((current, true, Vector(current)))
-    }
-
-    for (neighbor <- graph.get(current).neighbors.filter(n => vertexFilter(n)) if neighbor != parent) {
-      computeUnknownCycle(neighbor, current, graph, visited + current) match {
-        case Some((cycleStart, stillAppending, currentCycle)) => if (current == cycleStart) {
-          return Some((cycleStart, false, currentCycle))
-        } else if (stillAppending) {
-          return Some((cycleStart, stillAppending, current +: currentCycle))
-        }
-        case None =>
-      }
-
-    }
-
-    None
   }
 
   private def computeCycleFromStart(start: VType,

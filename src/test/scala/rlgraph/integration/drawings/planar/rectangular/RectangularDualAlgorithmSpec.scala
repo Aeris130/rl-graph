@@ -216,7 +216,8 @@ class RectangularDualAlgorithmSpec extends SpecImports with MockFactory {
 
     }
 
-    it ("should replace gates between a regular vertex and one of the four outer vertices (N,S,W,E) with dummies") {
+    //TODO find another graph using the graph viewer
+    ignore ("should replace gates between a regular vertex and one of the four outer vertices (N,S,W,E) with dummies") {
 
       // This might have to change if the algorithm changes
       Given("a graph that results in a gate between an outer and an inner vertex")
@@ -225,7 +226,10 @@ class RectangularDualAlgorithmSpec extends SpecImports with MockFactory {
       When("computing a rectangular dual")
       val dual = algorithm.computeLayout(graph)
 
-      Then("a dummy should exist")
+      Then("the resulting layout should be valid")
+      RLayoutValidation.layoutIsValid(dual)
+
+      And("a dummy should exist")
       assert(dual.allAreas.exists(_.isDummy))
       dual.dummies should have size 1
 

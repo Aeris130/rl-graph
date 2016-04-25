@@ -67,7 +67,7 @@ class RLayoutValidation[V] private () extends FunSpec {
 
   private def coordinatesUsed(drawing: RectangularLayout[V, UnDiEdge]): Unit = {
     for (x <- drawing.minX to drawing.maxX; y <- drawing.minY to drawing.maxY) {
-      if (!(drawing.rectangles.values ++ drawing.gates).exists(r => x >= r.startX && x <= r.stopX && y >= r.startY && y <= r.stopY)) {
+      if (!(drawing.rectangles.values ++ drawing.gates ++ drawing.dummies).exists(r => x >= r.startX && x <= r.stopX && y >= r.startY && y <= r.stopY)) {
         fail("The coordinate (" + x + ", " + y + ") is inside the min/max y coordinates for " + drawing + ", but not covered by a rectangle.")
       }
     }
@@ -78,12 +78,12 @@ class RLayoutValidation[V] private () extends FunSpec {
       val rCorners = corners(r)
       val intersecting1 = drawing.rectangles.values.find(other => {
         val otherCorners = corners(other)
-        other != r && !(otherCorners intersect rCorners).isEmpty
+        other != r && (otherCorners intersect rCorners).nonEmpty
       })
       val intersecting2 = if (intersecting1.isDefined) {
         drawing.rectangles.values.find(other => {
           val otherCorners = corners(other)
-          other != r && other != intersecting1.get && !(otherCorners intersect rCorners).isEmpty
+          other != r && other != intersecting1.get && (otherCorners intersect rCorners).nonEmpty
         })
       } else {
         None
@@ -93,7 +93,7 @@ class RLayoutValidation[V] private () extends FunSpec {
         val i1Corners = corners(intersecting1.get)
         val i2Corners = corners(intersecting2.get)
 
-        if (!rCorners.intersect(i1Corners.intersect(i2Corners)).isEmpty)
+        if (rCorners.intersect(i1Corners.intersect(i2Corners)).nonEmpty)
           fail("Intersecting corners between " + r + ", " + intersecting1.get + " and " + intersecting2.get)
       }
     }

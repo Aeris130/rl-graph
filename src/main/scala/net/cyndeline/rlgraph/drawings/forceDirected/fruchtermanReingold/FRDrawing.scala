@@ -1,7 +1,7 @@
 package net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold
 
 import net.cyndeline.rlcommon.math.geom._
-import net.cyndeline.rlgraph.drawings.StraightLineDrawing
+import net.cyndeline.rlgraph.drawings.{RVertex, StraightLineDrawing}
 import net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold.grid.{GridRectangle, VertexGrid}
 import net.cyndeline.rlgraph.util.GraphCommons
 
@@ -68,7 +68,7 @@ class FRDrawing private (grid: VertexGrid,
     val vertexToRVertex: Map[Int, RVertex] = rVertices.map(v => v.vertex -> v).toMap
     val rVertexToPoint = allVertices.map(v => vertexToRVertex(v.id) -> v.center.toInt).toMap
     val edges = GraphCommons.outerEdges(graph).map(e => (vertexToRVertex(e._1), vertexToRVertex(e._2)))
-    new StraightLineDrawing[RVertex](rVertices, edges, rVertexToPoint)
+    new StraightLineDrawing[RVertex](rVertices, edges, rVertexToPoint, width, height) // TODO test that width/height is set
   }
 
   /**

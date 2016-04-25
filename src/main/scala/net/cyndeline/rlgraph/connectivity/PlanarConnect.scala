@@ -12,7 +12,7 @@ import scalax.collection.immutable.Graph
  * minimize the increase in maximum degree by adding additional edges to the vertex with the lowest degree
  * in each component.
  */
-class PlanarConnect[VType : TypeTag](g: Graph[VType, UnDiEdge]) {
+class PlanarConnect[VType](g: Graph[VType, UnDiEdge]) {
 
   /** @return The graph after it has been connected. */
   def graph: Graph[VType, UnDiEdge] = computeGraphAndEdges._1
@@ -24,7 +24,7 @@ class PlanarConnect[VType : TypeTag](g: Graph[VType, UnDiEdge]) {
     var allComponents = computeConnectedComponents(g)
 
     if (allComponents.isEmpty) {
-      (Graph[VType, UnDiEdge](), Vector[(VType, VType)]())
+      (g.empty, Vector[(VType, VType)]())
     } else {
       val allEdges = new ListBuffer[(VType, VType)]()
       var currentGraph = g
@@ -54,7 +54,7 @@ class PlanarConnect[VType : TypeTag](g: Graph[VType, UnDiEdge]) {
     while (current.nonEmpty) {
       val arbitraryStart = current.nodes.head
       val reachedNodes = arbitraryStart.outerNodeTraverser.withKind(GraphTraversal.DepthFirst).toSet
-      result += reachedNodes.toSet
+      result += reachedNodes
 
       for (n <- reachedNodes)
         current -= n

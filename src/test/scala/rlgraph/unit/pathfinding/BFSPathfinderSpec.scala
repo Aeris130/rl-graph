@@ -133,5 +133,18 @@ class BFSPathfinderSpec extends SpecImports {
 
     }
 
+    it ("should compute paths deterministically") {
+
+      Given("two paths of equal length between vertex 1 and 4")
+      val graph = Graph(1~2, 2~4, 1~3, 3~4)
+
+      When("computing multiple paths")
+      val paths = for (i <- 0 to 50) yield pathfinder.computePath(1, 4, graph).get
+
+      Then("every path should be equal")
+      paths.distinct should have size 1
+
+    }
+
   }
 }

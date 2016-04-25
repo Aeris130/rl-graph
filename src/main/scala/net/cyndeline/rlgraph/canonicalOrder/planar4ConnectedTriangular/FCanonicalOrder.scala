@@ -1,6 +1,7 @@
 package net.cyndeline.rlgraph.canonicalOrder.planar4ConnectedTriangular
 
 import net.cyndeline.rlcommon.util.UnorderedPair
+import net.cyndeline.rlgraph.canonicalOrder.CanonicalOrder
 import net.cyndeline.rlgraph.canonicalOrder.planar4ConnectedTriangular.help.VertexLabels
 import net.cyndeline.rlgraph.embedding.Embedding
 import net.cyndeline.rlgraph.util.GraphCommons
@@ -40,15 +41,15 @@ import scala.collection.mutable
  * @param vn Forms a triangular face on the graph together with v1 and v2. Given a graph with n vertices, this vertex
  *           will receive the order n.
  */
-class CanonicalOrder[V](v1: V, v2: V, vnM1: V, vn: V, emb: Embedding[V]) {
-  require(!emb.iterator.exists(kv => kv._2.size < 4), "The submitted embedding was not 4-connected, vertex " + emb.iterator.find(_._2.size < 4).get + " has degree < 4")
+class FCanonicalOrder[V](v1: V, v2: V, vnM1: V, vn: V) extends CanonicalOrder[V] {
 
-  /* Every vertex mapped to its canonical ordering value. */
-  val ordering: Map[V, Int] = computeOrdering
+  /**
+    * @param emb A planar undirected embedding.
+    * @return The vertices in the graph, in the order they appear in the canonical ordering.
+    */
+  override def order(emb: Embedding[V]): Vector[V] = {
+    require(!emb.iterator.exists(kv => kv._2.size < 4), "The submitted embedding was not 4-connected, vertex " + emb.iterator.find(_._2.size < 4).get + " has degree < 4")
 
-  def vertexOrder(v: V): Int = ordering(v)
-
-  private def computeOrdering: Map[V, Int] = {
     var embedding = emb
     val labels = new VertexLabels(embedding.embeddedVertices)
     val result = new mutable.HashMap[V, Int]()
@@ -58,13 +59,13 @@ class CanonicalOrder[V](v1: V, v2: V, vnM1: V, vn: V, emb: Embedding[V]) {
     /* Start by manually processing v(n), causing at least one other vertex to receive 2 visits after v(n-1)
      * has been processed.
      */
-    processVertex(vn, labels, embedding)
+    processVertex(vn, labels, embedding, emb)
     embedding = embedding.deleteVertex(vn)
 
     var verticesLeft = result(vnM1) - 1
     var vk = vnM1
     while (verticesLeft > 2) {
-      processVertex(vk, labels, embedding)
+      processVertex(vk, labels, embedding, emb)
       labels.deRegisterVertex(vk)
       embedding = embedding.deleteVertex(vk)
       val next = findNextVertex(labels)
@@ -76,11 +77,11 @@ class CanonicalOrder[V](v1: V, v2: V, vnM1: V, vn: V, emb: Embedding[V]) {
     result += v1 -> 1
     result += v2 -> 2
 
-    result.toMap
+    result.toVector.sortBy(_._2).map(_._1)
   }
 
-  private def processVertex(v: V, labels: VertexLabels[V], e: Embedding[V]) {
-    val ns = neighbors(v, e)
+  private def processVertex(v: V, labels: VertexLabels[V], e: Embedding[V], originalEmbedding: Embedding[V]) {
+    val ns = neighbors(v, e, originalEmbedding)
     visitVertices(ns, labels)
     markChords(v, ns, labels, e)
   }
@@ -134,10 +135,10 @@ class CanonicalOrder[V](v1: V, v2: V, vnM1: V, vn: V, emb: Embedding[V]) {
    * This order is based on the original embedding, such that the first neighbor in the list will be the first neighbor
    * in the original embedding that appears after a vertex that has already been removed (and thus assigned its index).
    */
-  private def neighbors(v: V, e: Embedding[V]): Vector[V] = {
+  private def neighbors(v: V, e: Embedding[V], originalEmbedding: Embedding[V]): Vector[V] = {
     val trimmedAdjacency = e.embeddingFor(v)
     val startNeighbor = if (v == vn) vnM1
-      else emb.embeddingFor(v).iterator
+      else originalEmbedding.embeddingFor(v).iterator
             .find(e => !trimmedAdjacency.containsEntryFor(e.adjacentVertex) && trimmedAdjacency.containsEntryFor(e.next.adjacentVertex))
             .get.next.adjacentVertex
 

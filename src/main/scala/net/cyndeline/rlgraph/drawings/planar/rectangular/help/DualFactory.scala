@@ -31,7 +31,7 @@ class DualFactory[V : TypeTag : ClassTag](vWest: V, vSouth: V, vNorth: V, vEast:
    */
   def constructDualG1(embedding: Embedding[V], g1: Graph[V, DiEdge]): Dual[V] = {
     val faces = faceComp.computeFaces(embedding)
-    val edgeMembership = new FaceMembershipManager(faces)
+    val edgeMembership = new FaceMembershipManager[V, Face[V]](faces)
     val source = edgeMembership.rightFace(vSouth, vNorth)
     val sink = edgeMembership.leftFace(vSouth, vNorth)
     new Dual(
@@ -55,7 +55,7 @@ class DualFactory[V : TypeTag : ClassTag](vWest: V, vSouth: V, vNorth: V, vEast:
    */
   def constructDualG2(embedding: Embedding[V], g2: Graph[V, DiEdge]): Dual[V] = {
     val faces = faceComp.computeFaces(embedding)
-    val edgeMembership = new FaceMembershipManager(faces)
+    val edgeMembership = new FaceMembershipManager[V, Face[V]](faces)
     val source = edgeMembership.rightFace(vWest, vEast)
     val sink = edgeMembership.leftFace(vWest, vEast)
     constructDual(faces, edgeMembership, g2, vWest, vEast)
@@ -75,7 +75,7 @@ class DualFactory[V : TypeTag : ClassTag](vWest: V, vSouth: V, vNorth: V, vEast:
    * @return A directed graph with every edge weighted at -1, in order to compute the longest path through the
    *         graph using shortest-path algorithms.
    */
-  private def constructDual(faces: Vector[Face[V]], faceManager: FaceMembershipManager[V], graph: Graph[V, DiEdge], a: V, b: V): Graph[Face[V], DiEdge] = {
+  private def constructDual(faces: Vector[Face[V]], faceManager: FaceMembershipManager[V, Face[V]], graph: Graph[V, DiEdge], a: V, b: V): Graph[Face[V], DiEdge] = {
     var dual = Graph[Face[V], DiEdge]()
 
     // Construct left/right face from g1 edges

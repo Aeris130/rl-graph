@@ -5,6 +5,7 @@ import net.cyndeline.rlgraph.face.Face
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.language.higherKinds
 import scala.reflect.runtime.universe.TypeTag
 import scalax.collection.GraphEdge.{DiEdge, UnDiEdge}
 import scalax.collection.GraphPredef._
@@ -210,7 +211,7 @@ object GraphCommons {
     val neighbors = new mutable.Stack[graph.NodeT]()
     neighbors push graph.get(start)
 
-    while (!neighbors.isEmpty) {
+    while (neighbors.nonEmpty) {
       val current = neighbors.pop()
       val neighborEdges = current.outgoing.filter(e => include(e.toOuter) && !visited.contains(e))
       visited ++= neighborEdges

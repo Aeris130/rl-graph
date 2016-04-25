@@ -16,7 +16,10 @@ object IndexGraph {
     val vertices = new mutable.HashMap[VType, IndexVertex[VType]]()
     var i = 0
 
-    for (n <- graph.nodes) {
+    /* Sorting by ## only serves to deterministically assign indices to graphs using continuous intervals of
+     * values as their node sets, such as integers or chars.
+     */
+    for (n <- GraphCommons.outerVertices(graph).sortBy(_.##)) {
       val indexV: IndexVertex[VType] = IndexVertex(n, i)
       result += indexV
       vertices += ((n, indexV))

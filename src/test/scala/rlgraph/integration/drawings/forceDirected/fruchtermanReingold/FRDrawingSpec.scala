@@ -1,7 +1,8 @@
 package rlgraph.integration.drawings.forceDirected.fruchtermanReingold
 
 import net.cyndeline.rlcommon.math.geom.{Point, Rectangle}
-import net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold.{FRDrawing, FRSettings, RVertex, SizeDisplacement}
+import net.cyndeline.rlgraph.drawings.RVertex
+import net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold.{FRDrawing, FRSettings, SizeDisplacement}
 import rlgraph.SpecImports
 
 import scalax.collection.GraphPredef._

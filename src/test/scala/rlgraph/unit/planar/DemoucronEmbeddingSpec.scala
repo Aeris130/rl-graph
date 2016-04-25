@@ -204,6 +204,20 @@ class DemoucronEmbeddingSpec extends SpecImports {
       assert(fourAndFiveConsec, "Edges 4 and 5 were not consecutive in embedding " + emb3)
 
     }
+
+    it ("should embed graphs deterministically") {
+
+      Given("a graph")
+      val graph = Graph(1~2, 2~3, 3~1, 1~4, 4~5, 5~3, 2~6, 2~7)
+
+      When("embedding the graph multiple times")
+      val embeddings = for (i <- 1 to 50) yield embedder.embed(graph).get
+      val numberOfEmbeddings = embeddings.length
+
+      Then("every embedding should equal every other embedding")
+      assert(!embeddings.exists(e => embeddings.count(_ == e) != numberOfEmbeddings), "Every embedding was not deterministic.")
+
+    }
   }
 
   /**
@@ -214,7 +228,7 @@ class DemoucronEmbeddingSpec extends SpecImports {
     val start = currentEntry
     var remainingEdges = edgeOrder
 
-    while (!remainingEdges.isEmpty) {
+    while (remainingEdges.nonEmpty) {
       if (currentEntry.adjacentVertex == remainingEdges(0)) {
         currentEntry = currentEntry.next
         remainingEdges = remainingEdges.drop(1)

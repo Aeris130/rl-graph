@@ -26,7 +26,7 @@ class Dual[V : TypeTag : ClassTag](tEdgeGraph: Graph[V, DiEdge],
                                   embedding: Embedding[V],
                                   outerVertices: Set[V]) {
   private val allFaces = new FaceComputation[V]().computeFaces(embedding)
-  private val edgemanager = new FaceMembershipManager[V](allFaces)
+  private val edgemanager = new FaceMembershipManager[V, Face[V]](allFaces)
   private val leftFaceMap: Map[V, Face[V]] = computeLeftFaces
   private val rightFaceMap: Map[V, Face[V]] = computeRightFaces
   private val longestPaths = LongestDAGPath.withoutWeights(source, dualStructure)

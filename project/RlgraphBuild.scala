@@ -4,7 +4,7 @@ import sbt._
 object RlgraphBuild extends Build {
   lazy val buildProject = Project("RLGraph", file(".")) settings(
     version       := "1.0",
-    scalaVersion  := "2.11.7",
+    scalaVersion  := "2.11.8",
     scalacOptions := Seq("-deprecation"),
     name          := "rlgraph",
     organization  := "net.cyndeline",

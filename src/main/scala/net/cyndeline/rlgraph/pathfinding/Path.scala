@@ -21,6 +21,8 @@ class Path[V, E[X] <: EdgeLikeIn[X]] private (val start: V, val stop: V, val ver
 
   override def hashCode: Int = start.## ^ stop.## ^ vertices.## ^ edges.##
 
+  override def toString: String = "Path from " + start + " to " + stop + ", via " + edges.mkString(", ")
+
 }
 
 object Path {

@@ -2,7 +2,7 @@ package net.cyndeline.rlgraph.face
 
 import net.cyndeline.rlgraph.embedding.{AdjacencyList, Embedding}
 import net.cyndeline.rlgraph.planar.ComputeFaceOperation
-import net.cyndeline.rlgraph.planar.boyerMyrwold.BoyerMyrwoldEmbedder
+import net.cyndeline.rlgraph.planar.demoucron.operation.DemoucronEmbedding
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.reflect.ClassTag
@@ -56,8 +56,8 @@ class FaceComputation[VType : TypeTag : ClassTag] extends ComputeFaceOperation[V
      * STEP 2: Traverse and delete edges until the graph is empty. Traversal order is selected using the embedding.
      */
     val faces = new ArrayBuffer[Face[VType]]
-    while (graph.edges.size > 0) {
-      val randomEdge: DiEdge[VType] = graph.edges.toOuter.toSet[DiEdge[VType]].head
+    while (graph.edges.nonEmpty) {
+      val randomEdge: DiEdge[VType] = graph.edges.toOuter.head
       val to = randomEdge.to
       val from = randomEdge.from
       val face = new ArrayBuffer[VType]()
@@ -89,7 +89,7 @@ class FaceComputation[VType : TypeTag : ClassTag] extends ComputeFaceOperation[V
    *         traversed around the face. The last entry in the face is implied to be connected to the first.
    */
   def computeFacesFromGraph(graph: ImmutableGraph[VType, UnDiEdge]): Vector[Face[VType]] = {
-    val embedder = new BoyerMyrwoldEmbedder[VType]()
+    val embedder = new DemoucronEmbedding[VType, UnDiEdge]()
     computeFaces(embedder.embed(graph).getOrElse(throw new IllegalArgumentException("The graph " + graph + " was not planar.")))
   }
 

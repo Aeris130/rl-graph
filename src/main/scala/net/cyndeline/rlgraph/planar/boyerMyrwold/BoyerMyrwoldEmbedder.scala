@@ -26,7 +26,10 @@ import scalax.collection.immutable.Graph
  *
  * This class also makes the embedding deterministic, resulting in equal embeddings when the same input graph is used
  * multiple times.
+  *
+  * Note: Errors running on scala2.11.8 with java 8.
  */
+//TODO fix java8 bug.
 class BoyerMyrwoldEmbedder[VType : TypeTag : ClassTag] extends PlanarEmbedOperation[VType, UnDiEdge] {
   private val vinetsConverter = new VinetsConverter[VType, UnDiEdge]()
 

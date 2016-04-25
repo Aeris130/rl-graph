@@ -8,9 +8,11 @@ import net.cyndeline.rlgraph.drawings.planar.rectangular.OuterFaceSelection
 import net.cyndeline.rlgraph.drawings.planar.rectangular.dataStructure.RVertex
 import net.cyndeline.rlgraph.drawings.planar.rectangular.embedding.BhaskerSahniEmbedder
 import net.cyndeline.rlgraph.drawings.planar.rectangular.triangleBreak.TriangleBreaker
+import net.cyndeline.rlgraph.planar.demoucron.operation.DemoucronEmbedding
 import net.cyndeline.rlgraph.triangulation.fourConnectivity.FourConnectivityTriangulation
 import net.cyndeline.rlgraph.util.{GraphCommons, GraphConverter}
 
+import scala.language.higherKinds
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 import scalax.collection.GraphEdge.UnDiEdge
@@ -36,7 +38,7 @@ class DataSetup[VType : ClassTag : TypeTag, EType[X] <: UnDiEdge[X]: ({type l[M[
 
   private def setup = {
     val embedder = new BhaskerSahniEmbedder[RVertex[VType]]() // Only embeds if the graph is a PTP graph
-    val planarEmbed = new BoyerMyrwoldEmbedder[RVertex[VType]]()
+    val planarEmbed = new DemoucronEmbedding[RVertex[VType], UnDiEdge]()
     val biconnecter = new BiconnectivityOperation[RVertex[VType]]()
     val faceComp = new FaceComputation[RVertex[VType]]()
 
@@ -84,7 +86,7 @@ class DataSetup[VType : ClassTag : TypeTag, EType[X] <: UnDiEdge[X]: ({type l[M[
     val dummyGates: Vector[RVertex[VType]] = for {
       split <- embedding.embeddedVertices.filter(_.isSplit)
       neighbors = embedding.embeddingFor(split).toVector.map(_.adjacentVertex)
-      if !(neighbors.toSet intersect outerSet).isEmpty
+      if (neighbors.toSet intersect outerSet).nonEmpty
     } yield split
 
     /* Step 4: Triangulate every face except the outer. */

@@ -1,6 +1,6 @@
 package net.cyndeline.rlgraph.regularEdgeLabeling.factories.help
 
-import net.cyndeline.rlgraph.canonicalOrder.planar4ConnectedTriangular.CanonicalOrder
+import net.cyndeline.rlgraph.canonicalOrder.planar4ConnectedTriangular.FCanonicalOrder
 import net.cyndeline.rlgraph.embedding.{AdjacencyEntry, Embedding}
 import net.cyndeline.rlgraph.face.{Face, FaceComputation}
 import net.cyndeline.rlgraph.util.GraphCommons
@@ -46,7 +46,7 @@ class CanonicalEdgeSets[V : TypeTag : ClassTag](embedding: Embedding[V], vS: V, 
     val tempT1 = new ListBuffer[(V, V)]()
     val tempT2 = new ListBuffer[(V, V)]()
     val canonicalOrder = canonicalOrdering
-    val highestOrderIndex = canonicalOrder.ordering.size
+    val highestOrderIndex = canonicalOrder.size
 
     /* Some edges will be found both as base-edges and left/right edges, as well as connected to the external
      * vertices. This set keeps edges from being added twice.
@@ -64,7 +64,7 @@ class CanonicalEdgeSets[V : TypeTag : ClassTag](embedding: Embedding[V], vS: V, 
     addedEdges ++= tempT2
 
     // Skip the two lowest (1, 2) and the two highest.
-    for (entry <- canonicalOrder.ordering if entry._2 > 2 && entry._2 < highestOrderIndex - 1) {
+    for (entry <- canonicalOrder if entry._2 > 2 && entry._2 < highestOrderIndex - 1) {
       val baseEdge = findbaseEdge(entry._1, canonicalOrder, highestOrderIndex)
 
       if (!addedEdges.contains(baseEdge.tuple)) {
@@ -109,14 +109,14 @@ class CanonicalEdgeSets[V : TypeTag : ClassTag](embedding: Embedding[V], vS: V, 
    * neighbors, as the edges on the outer face (between the four vertices in the quadrangle) won't be added to the
    * label sets T1 and T2.
    */
-  private def higherNumberedNeighbors(v: V, order: CanonicalOrder[V], highestIndex: Int): ListBuffer[V] = {
-    val vOrderIndex: Int = order.vertexOrder(v)
+  private def higherNumberedNeighbors(v: V, order: Map[V, Int], highestIndex: Int): ListBuffer[V] = {
+    val vOrderIndex: Int = order(v)
     require(vOrderIndex > 2, "No edges for vertex indices < 3 should be computed as leftedges or rightedges.")
     require(vOrderIndex < highestIndex - 1, "The two vertices on the outer face with the highest indices only has each other as possible high-order neighbors, and should not be added to T1/T2.")
 
     val startEntry: AdjacencyEntry[V] = emb.embeddingFor(v)
       .toVector
-      .find(entry => order.vertexOrder(entry.adjacentVertex) < vOrderIndex && order.vertexOrder(entry.next.adjacentVertex) > vOrderIndex)
+      .find(entry => order(entry.adjacentVertex) < vOrderIndex && order(entry.next.adjacentVertex) > vOrderIndex)
       .get.next
 
     ajdacencySubset(startEntry, (a: Int) => a > vOrderIndex, order)
@@ -129,20 +129,20 @@ class CanonicalEdgeSets[V : TypeTag : ClassTag](embedding: Embedding[V], vS: V, 
    * Depending on which of these vertices the base edge is outgoing from, it gets added to different sets.
    * If n = i then the edge gets added to T2, = j gets it added to T1. Otherwise it's arbitrary.
    */
-  private def findbaseEdge(v: V, order: CanonicalOrder[V], highestIndex: Int): BaseEdgeEntry = {
-    val vOrderIndex: Int = order.vertexOrder(v)
+  private def findbaseEdge(v: V, order: Map[V, Int], highestIndex: Int): BaseEdgeEntry = {
+    val vOrderIndex: Int = order(v)
     require(vOrderIndex > 2, "No edges for vertex indices < 3 should be added to T1/T2 as base edges.")
     require(vOrderIndex < highestIndex - 1, "The two vertices on the outer face with the highest indices always has the initial edge as their lowest neighbor. Those edges should not be added to T1/T2.")
 
     val startEntry: AdjacencyEntry[V] = emb.embeddingFor(v)
       .toVector
-      .find(entry => order.vertexOrder(entry.adjacentVertex) > vOrderIndex && order.vertexOrder(entry.next.adjacentVertex) < vOrderIndex)
+      .find(entry => order(entry.adjacentVertex) > vOrderIndex && order(entry.next.adjacentVertex) < vOrderIndex)
       .get.next
 
     // Vertices ci (first) -> cj (last)
     val neighbors = ajdacencySubset(startEntry, (a: Int) => a < vOrderIndex, order)
     val lowestVertex = neighbors
-      .map(v => v -> order.vertexOrder(v))
+      .map(v => v -> order(v))
       .reduceLeft((a, b) => if (a._2 < b._2) a else b)
       ._1 // Only need the vertex
 
@@ -158,10 +158,10 @@ class CanonicalEdgeSets[V : TypeTag : ClassTag](embedding: Embedding[V], vS: V, 
 
   private def ajdacencySubset(start: AdjacencyEntry[V],
                               isValid: Int => Boolean,
-                              order: CanonicalOrder[V]): ListBuffer[V] = {
+                              order: Map[V, Int]): ListBuffer[V] = {
     var current = start
     val result = new ListBuffer[V]()
-    while (isValid(order.vertexOrder(current.adjacentVertex))) {
+    while (isValid(order(current.adjacentVertex))) {
       result += current.adjacentVertex
       current = current.next
     }
@@ -169,7 +169,7 @@ class CanonicalEdgeSets[V : TypeTag : ClassTag](embedding: Embedding[V], vS: V, 
     result
   }
 
-  private def canonicalOrdering: CanonicalOrder[V] = {
+  private def canonicalOrdering: Map[V, Int] = {
     val newEmbedding = emb
     val faces = new FaceComputation[V]().computeFaces(newEmbedding)
     val outerFaceCandidates = faces.filter(_.vertexSize == 4)
@@ -181,8 +181,9 @@ class CanonicalEdgeSets[V : TypeTag : ClassTag](embedding: Embedding[V], vS: V, 
     val vnM1 = vE
     val vn = vN
 
-    // Any two adjacent vertices on the outer face will do as a start edge
-    new CanonicalOrder(v1, v2, vnM1, vn, makeGraph4Connected(newEmbedding, outerFace))
+    // Any two adjacent vertices on the outer face will do as a start edge. Add +1 to the final ordering, to make it
+    // go from 1 to n rather than 0 to n - 1.
+    new FCanonicalOrder(v1, v2, vnM1, vn).order(makeGraph4Connected(newEmbedding, outerFace)).zipWithIndex.map(entry => entry._1 -> (entry._2 + 1)).toMap
   }
 
   /**

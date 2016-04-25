@@ -3,6 +3,7 @@ package net.cyndeline.rlgraph.biconnectivity.components
 import net.cyndeline.rlgraph.biconnectivity.BiconnectedComponentsOperation
 
 import scala.collection.mutable
+import scala.language.higherKinds
 import scalax.collection.GraphEdge.UnDiEdge
 import scalax.collection.immutable.Graph
 
