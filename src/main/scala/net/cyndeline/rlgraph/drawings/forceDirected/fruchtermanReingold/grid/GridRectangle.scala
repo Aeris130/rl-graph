@@ -1,6 +1,7 @@
 package net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold.grid
 
-import net.cyndeline.rlcommon.math.geom.{DPoint, Point, Rectangle}
+import net.cyndeline.rlcommon.math.geom.{DPoint, Point, RPoint, Rectangle}
+import spire.math.Rational
 
 /**
   * @param id A unique identifier belonging to the vertex represented by this rectangle.
@@ -8,13 +9,13 @@ import net.cyndeline.rlcommon.math.geom.{DPoint, Point, Rectangle}
   * @param w Rectangle width.
   * @param h Rectangle height.
   */
-class GridRectangle(val id: Int, val s: Point, val w: Int, val h: Int) extends Rectangle(s, w, h) {
+class GridRectangle(val id: Int, val s: Point, val w: Int, val h: Int) extends Rectangle(RPoint(s), Rational(w), Rational(h)) {
 
   /** The center coordinate of the rectangle. */
-  val center: DPoint = DPoint((start.x + Math.ceil(width / 2)).toInt, (start.y + Math.ceil(height / 2)).toInt)
+  val center: RPoint = RPoint(start.x + (width / 2).floor, start.y + (height / 2).floor)
 
   /** Exclusive ending coordinate for the rectangle. */
-  val stop: Point = (start + (width, height)).toInt
+  val stopCoordinate: RPoint = start + (width, height)
 
   /**
     * @param dx Amount to modify the rectangles x coordinate by.
@@ -24,7 +25,7 @@ class GridRectangle(val id: Int, val s: Point, val w: Int, val h: Int) extends R
     */
   def move(dx: Int, dy: Int, grid: VertexGrid): GridRectangle = {
     val errorStr = "Attempted to move rectangle outside vertex grid bounds: " + GridRectangle
-    val moved = GridRectangle(id, start + (dx, dy), w, h)
+    val moved = GridRectangle(id, Point(start + (dx, dy)), w, h)
     require(moved.isInside(grid), errorStr)
     moved
   }
@@ -34,7 +35,7 @@ class GridRectangle(val id: Int, val s: Point, val w: Int, val h: Int) extends R
     * @return True if the entire rectangle lies inside the grids start and stop coordinates, otherwise false.
     */
   def isInside(grid: VertexGrid): Boolean = {
-    start.x >= 0 && start.y >= 0 && stop.x <= grid.width && stop.y <= grid.height
+    start.x >= 0 && start.y >= 0 && stopCoordinate.x <= grid.width && stopCoordinate.y <= grid.height
   }
 
   override def equals(other: Any): Boolean = other match {

@@ -25,6 +25,20 @@ class DemoucronEmbeddingSpec extends SpecImports {
       }
     }
 
+    it ("should embed a single vertex") {
+
+      Given("a graph with a single vertex")
+      val graph = Graph[Int, UnDiEdge](1)
+
+      When("embedding it")
+      val embedding = embedder.embed(graph).get
+
+      Then("the embedding should contain a single vertex")
+      embedding.vertexSize should be (1)
+      embedding.edges should be ('empty)
+
+    }
+
     it ("should embed a single bridge") {
 
       Given("a graph with 2 vertices and a single edge between them")

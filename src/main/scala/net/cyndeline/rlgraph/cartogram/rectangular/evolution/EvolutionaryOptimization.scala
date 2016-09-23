@@ -1,6 +1,6 @@
 package net.cyndeline.rlgraph.cartogram.rectangular.evolution
 
-import net.cyndeline.rlcommon.util.ProbabilityCollection
+import net.cyndeline.rlcommon.collections.ProbabilityCollection
 import net.cyndeline.rlgraph.cartogram.rectangular.common.MapArea
 import net.cyndeline.rlgraph.cartogram.rectangular.segmentHeuristic.SegmentHeuristic
 import net.cyndeline.rlgraph.drawings.planar.rectangular.dataStructure.RVertex
@@ -8,6 +8,7 @@ import net.cyndeline.rlgraph.drawings.planar.rectangular.{RELDualAlgorithm, Rect
 import net.cyndeline.rlgraph.regularEdgeLabeling.EdgeLabeling
 import net.cyndeline.rlgraph.regularEdgeLabeling.altFourCycles.{AlternatingFourCycles, FourCycle}
 
+import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.reflect.runtime.universe.TypeTag
 import scala.util.Random
@@ -111,12 +112,13 @@ class EvolutionaryOptimization[V <: MapArea : TypeTag, E[X] <: UnDiEdge[X]](iter
   private def fillRemainingPopulationSlots(suboptimalSolutions: Vector[AlternatingFourCycles[RVertex[V]]],
                                            ran: Random): Vector[AlternatingFourCycles[RVertex[V]]] = {
     val withProbability: Vector[(Double, AlternatingFourCycles[RVertex[V]])] = suboptimalSolutions
+      .distinct // Prob. collection doesn't allow duplicate entries
       .zipWithIndex
       .map(s => (Math.pow(0.9, s._2 + 1), s._1)) // +1 since indices start at 0 rather than 1
-    val randomSelection = new ProbabilityCollection(ran, withProbability:_*)
+    val randomSelection = ProbabilityCollection.from(withProbability:_*)
     val selected = new ListBuffer[AlternatingFourCycles[RVertex[V]]]()
-    for (i <- 0 until suboptimalSolutions.size)
-      selected += randomSelection.next
+    for (i <- suboptimalSolutions.indices)
+      selected += randomSelection.next(ran)
 
     selected.toVector
   }
@@ -140,7 +142,7 @@ class EvolutionaryOptimization[V <: MapArea : TypeTag, E[X] <: UnDiEdge[X]](iter
       var current = c
       var i = 0
 
-      while (i < cyclesToFlip && !remainingCycles.isEmpty) {
+      while (i < cyclesToFlip && remainingCycles.nonEmpty) {
         val cycle = remainingCycles(ran.nextInt(remainingCycles.size))
         current = current.flipCycle(cycle)
         i += 1
@@ -189,7 +191,7 @@ class EvolutionaryOptimization[V <: MapArea : TypeTag, E[X] <: UnDiEdge[X]](iter
     var currentSolution = minimalLabeling
     population += currentSolution
 
-    for (d <- 0 until cyclesToFlip if !leftCyclesRemaining.isEmpty) {
+    for (d <- 0 until cyclesToFlip if leftCyclesRemaining.nonEmpty) {
       val cycleIndex = r.nextInt(leftCyclesRemaining.size)
       val randomCycle = leftCyclesRemaining(cycleIndex)
       currentSolution = currentSolution.flipCycle(randomCycle)

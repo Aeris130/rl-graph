@@ -38,6 +38,8 @@ class DemoucronEmbedding[VType: TypeTag : ClassTag, EType[X] <: UnDiEdge[X]] ext
    */
   def embed(graph: Graph[VType, EType]): Option[Embedding[VType]] = {
     if (!graph.isConnected) throw new IllegalArgumentException("The supplied graph wasn't connected:\n" + graph)
+    else if (graph.nodes.size == 1)
+      return Some(UndirectedEmbedding[VType]().embed(graph.nodes.head))
 
     /* Euler's theorem */
     if (graph.nodes.size >= 3 && graph.edges.size > ((3 * graph.nodes.size) - 6)) return None // Not planar

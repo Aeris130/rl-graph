@@ -1,18 +1,20 @@
 package rlgraph.integration.drawings.planar.grid
 
 import net.cyndeline.rlcommon.math.geom.Point
+import net.cyndeline.rlcommon.util.UnorderedPair
 import net.cyndeline.rlgraph.canonicalOrder.planarBiconnected.Contour
 import net.cyndeline.rlgraph.drawings.planar.grid.PlanarGridAlgorithm
 import net.cyndeline.rlgraph.embedding.Vertex
 import net.cyndeline.rlgraph.embedding.immutable.UndirectedEmbedding
+import net.cyndeline.rlgraph.util.GraphCommons
 import rlgraph.SpecImports
 import rlgraph.help.GridLayoutData
 
+import scalax.collection.GraphPredef._
 import scala.language.postfixOps
+import scalax.collection.GraphEdge.UnDiEdge
+import scalax.collection.immutable.Graph
 
-/**
-  * Created by Tobias Edin on 2016-04-23.
-  */
 class PlanarGridAlgorithmSpec extends SpecImports {
   private val algorithm = new PlanarGridAlgorithm()
 
@@ -37,6 +39,33 @@ class PlanarGridAlgorithmSpec extends SpecImports {
   }
 
   describe("PlanarGridAlgorithm") {
+
+    it ("should draw an empty graph") {
+
+      Given("an empty graph")
+      val graph = Graph[Int, UnDiEdge]()
+
+      When("computing a drawing")
+      val drawing = algorithm.computeDrawing(graph)
+
+      Then("the drawing should be empty")
+      drawing.isEmpty should be (true)
+
+    }
+
+    it ("should draw a single vertex") {
+
+      Given("a graph with a single vertex 1")
+      val graph = Graph[Int, UnDiEdge](1)
+
+      When("computing a drawing")
+      val drawing = algorithm.computeDrawing(graph)
+
+      Then("vertex 1 should have coordinate (0,0)")
+      drawing.vertices should be (Vector(1))
+      drawing.coordinates(1) should be (Point(0, 0))
+
+    }
 
     it ("should draw 1~2") {
 
@@ -137,6 +166,59 @@ class PlanarGridAlgorithmSpec extends SpecImports {
       var c = new Contour[Int](1, 2, e)
       for (v <- drawing.vertices.drop(2)) // 1 and 2 is already on C
         c = c.addVertex(v).newContour
+
+    }
+
+    it ("should compute a drawing from a graph") {
+
+      Given("a biconnected graph")
+      val graph = Graph(1~2, 2~3, 3~4, 4~5, 5~2, 2~6, 6~7, 7~4)
+
+      When("drawing the graph")
+      val drawing = algorithm.computeDrawing(graph)
+
+      Then("no overlapping coordinates should exist")
+      assert(drawing.vertices.map(drawing.coordinates).toSet.size == drawing.vertices.size, "Overlapping coordinates found.")
+
+      And("every neighbor of a vertex should be drawn above or below it, and to the left or right of it")
+      val v1 = drawing.vertices.find(v => drawing.coordinates(v) == Point(0, 0)).get
+      val v2 = drawing.coordinates.maxBy(kv => kv._2.x)._1
+      for (v <- drawing.vertices; neighbor <- GraphCommons.outerNeighbors(v, graph)) {
+        val vc = drawing.coordinates(v)
+        val nc = drawing.coordinates(neighbor)
+
+        if (Set(v, neighbor) != Set(v1, v2)) {
+          assert(vc.y < nc.y || vc.y > nc.y, "Neighbors " + vc + " and " + nc + " were drawn at the same y coordinate.")
+          assert(vc.x < nc.x || vc.x > nc.x, "Neighbors " + vc + " and " + nc + " were drawn at the same x coordinate.")
+        }
+      }
+
+    }
+
+    it ("should include the original edges of a graph") {
+
+      Given("a graph with edges 1-2, 2-3 and 3-4")
+      val graph = Graph(1~2, 2~3, 3~4)
+
+      When("drawing the graph")
+      val drawing = algorithm.computeDrawing(graph)
+
+      Then("only the original edges should be included in the final drawing")
+      drawing.edges should have size 3
+      drawing.edges.map(UnorderedPair(_)).toSet should equal (Set(UnorderedPair(1, 2), UnorderedPair(2, 3), UnorderedPair(3, 4)))
+
+    }
+
+    it ("should not include any edges if the graph is completely disconnected") {
+
+      Given("a non-biconnected graph without edges")
+      val graph = Graph[Int, UnDiEdge](1, 2, 3, 4)
+
+      When("drawing the graph")
+      val drawing = algorithm.computeDrawing(graph)
+
+      Then("no edges should be included in the final drawing")
+      drawing.edges should be ('empty)
 
     }
 

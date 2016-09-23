@@ -36,6 +36,9 @@ object RlgraphBuild extends Build {
 
       // R*Trees
       "com.meetup" %% "archery" % "0.4.0",
+
+      // Rational class, https://github.com/non/spire
+      "org.spire-math" %% "spire" % "0.11.0",
 	
       // Tests
 

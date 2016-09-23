@@ -1,7 +1,8 @@
 package net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold
 
-import net.cyndeline.rlcommon.math.geom.{DPoint, Point}
+import net.cyndeline.rlcommon.math.geom.{DPoint, Point, RPoint}
 import net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold.grid.GridRectangle
+import spire.math.Rational
 
 /**
   * Computes forces that positions vertices relative to their size, preventing overlap of their rectangles and
@@ -14,7 +15,7 @@ import net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold.grid.Gri
   * @param constant A constant that scales repulsing forces. No optimal value exists, the user should experiment
   *                 with various values to see how they affect the final drawing.
   */
-class SizeDisplacement(optimalDistance: Double, constant: Double) extends Force {
+class SizeDisplacement(optimalDistance: Rational, constant: Rational) extends Force {
   private val epsilon = 1e-3
 
   /**
@@ -22,7 +23,7 @@ class SizeDisplacement(optimalDistance: Double, constant: Double) extends Force 
     * @param b A neighbor of 'a.
     * @return The displacement that should occur to vertex 'a, should be a positive value.
     */
-  override def computeAttractingForce(a: GridRectangle, b: GridRectangle): Double = {
+  override def computeAttractingForce(a: GridRectangle, b: GridRectangle): Rational = {
     val aRadius = a.diagonal / 2
     val bRadius = b.diagonal / 2
     val distanceAB = a.center distanceTo b.center
@@ -35,7 +36,7 @@ class SizeDisplacement(optimalDistance: Double, constant: Double) extends Force 
       0
 
     } else {
-      Math.pow(distanceBetweenCircles, 2) / (optimalDistance + aRadius)
+      distanceBetweenCircles.pow(2) / (optimalDistance + aRadius)
     }
   }
 
@@ -43,15 +44,15 @@ class SizeDisplacement(optimalDistance: Double, constant: Double) extends Force 
     * @return The displacement that should occur between two adjacent but non-connected vertices. Should be a positive
     *         value.
     */
-  override def computeRepulsingForce(a: GridRectangle, b: GridRectangle): Double = {
+  override def computeRepulsingForce(a: GridRectangle, b: GridRectangle): Rational = {
     if (a overlaps b) {
       val centers = if (a.center == b.center) overlappingCenter(a, b) else (a.center, b.center)
 
       // Use epsilon in can both rectangles have the same center coordinate
-      constant * (Math.pow(optimalDistance, 2) / Math.max(epsilon, centers._1.distanceTo(centers._2)))
+      constant * (optimalDistance.pow(2) / centers._1.distanceTo(centers._2).max(epsilon))
 
     } else {
-      Math.pow(optimalDistance, 2) / a.center.distanceTo(b.center) // Denominator can't be 0 since there's no overlap
+      optimalDistance.pow(2) / a.center.distanceTo(b.center) // Denominator can't be 0 since there's no overlap
     }
   }
 
@@ -62,7 +63,7 @@ class SizeDisplacement(optimalDistance: Double, constant: Double) extends Force 
     * @param maxIterations The maximum amount of iteration to perform before the algorithm is considered finished.
     * @return The temperature after it has been cooled off.
     */
-  def cool(temperature: Double, currentIteration: Int, maxIterations: Int): Double = temperature * (1.0 - (currentIteration / maxIterations.toDouble))
+  def cool(temperature: Rational, currentIteration: Int, maxIterations: Int): Rational = temperature * (1.0 - (currentIteration / maxIterations.toDouble))
 
   /**
     * Computes how two rectangles whose centers overlap should have their center coordinates computed as. This will
@@ -71,7 +72,7 @@ class SizeDisplacement(optimalDistance: Double, constant: Double) extends Force 
     * @param n And adjacent neighbour that should apply a repulsing force onto v.
     * @return The center coordinates of v and n as they should be used when computing repulsing forces.
     */
-  def overlappingCenter(v: GridRectangle, n: GridRectangle): (DPoint, DPoint) = {
+  def overlappingCenter(v: GridRectangle, n: GridRectangle): (RPoint, RPoint) = {
     val vc = if (v.id > n.id) v.center else v.center + 1
     val nc = if (v.id > n.id) n.center + 1 else n.center
     (vc, nc)

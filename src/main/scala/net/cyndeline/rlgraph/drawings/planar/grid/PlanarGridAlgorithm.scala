@@ -1,13 +1,15 @@
 package net.cyndeline.rlgraph.drawings.planar.grid
 
-import net.cyndeline.rlcommon.math.geom.{Dimensions, Point}
+import java.util.concurrent.TimeUnit
+
+import net.cyndeline.rlcommon.math.geom.Point
 import net.cyndeline.rlgraph.biconnectivity.biconnect.KantBodlaenderBiconnection.BiconnectivityOperation
 import net.cyndeline.rlgraph.canonicalOrder.planarBiconnected.{BCanonicalOrder, Contour}
+import net.cyndeline.rlgraph.drawings.StraightLineDrawing
 import net.cyndeline.rlgraph.drawings.planar.grid.binaryTree.LeftRightTree
 import net.cyndeline.rlgraph.embedding.Embedding
 import net.cyndeline.rlgraph.planar.demoucron.operation.DemoucronEmbedding
 import net.cyndeline.rlgraph.util.GraphCommons
-
 import scalax.collection.GraphEdge.UnDiEdge
 import scalax.collection.immutable.Graph
 
@@ -16,11 +18,10 @@ import scalax.collection.immutable.Graph
   * M. Chrobak and T.H. Payne as outlined in "A Linear-time Algorithm for Drawing a Planar Graph on a Grid". As the
   * original algorithm required the input graph to be maximally planar (easiest achieved by triangulating the graph if
   * this was not the case), the canonical ordering used to produce the drawing is computed by the generalized algorithm
-  * by D. Harel and M. Sardas described in "An Incremental Drawing Algorithm for Planar Graphs". Doing so prevents
-  * the final drawing from becoming needlessly convex when the triangulating dummy-edges are removed.
+  * by D. Harel and M. Sardas described in "An Incremental Drawing Algorithm for Planar Graphs" which only requires
+  * the input graph to be biconnected instead. Doing so prevents the final drawing from becoming needlessly convex when
+  * the (would-be) triangulating dummy-edges are removed.
   */
-//TODO Test building a drawing from a graph
-//TODO test exception throwing when not every rectangle dimension is specified.
 class PlanarGridAlgorithm {
 
   /**
@@ -30,61 +31,54 @@ class PlanarGridAlgorithm {
     * @return A planar grid drawing of the graph using an arbitrary start edge (as long as the original graph contains
     *         at least one edge, the starting edge is guaranteed to not be a dummy).
     */
-  def computeDrawing(g: Graph[Int, UnDiEdge]): GridDrawing = {
-    computeRectangleDrawing(g, GraphCommons.outerVertices(g).map(v => v -> Dimensions(1, 1)).toMap)
-  }
+  def computeDrawing(g: Graph[Int, UnDiEdge]): StraightLineDrawing[Int] = {
+    if (g.isEmpty)
+      return StraightLineDrawing.empty[Int]
+    else if (g.nodes.size == 1)
+      return StraightLineDrawing.singleVertex(g.nodes.head)
 
-  /**
-    * Specifies rectangle dimensions for each vertex, causing the final drawing to space vertex coordinates apart in
-    * order to avoid rectangle overlap.
-    * @param g Graph to draw. Must contain at least two vertices and be planar. If the graph is not biconnected, the
-    *          final drawing will be based on a graph having dummy-edges to achieve biconnectivity.
-    * @param rectangles Maps each vertex in the embedding to the dimensions of the rectangle that it should be drawn as.
-    * @return A grid drawing of the embedding.
-    */
-  def computeRectangleDrawing(g: Graph[Int, UnDiEdge], rectangles: Map[Int, Dimensions]): GridDrawing = {
-    require(g.nodes.size > 1, "The submitted graph must contain at least two vertices.")
     val embedder = new DemoucronEmbedding[Int, UnDiEdge]()
-    val biconnectivity = new BiconnectivityOperation[Int]()
-    val biconnectedGraph = biconnectivity.biconnect(g).graph
+    val biconnectData = new BiconnectivityOperation[Int]().biconnect(g)
+    val biconnectedGraph = biconnectData.graph // Solves connectivity and lack of edges
+
+    val tBeforeEmbedding = java.lang.System.currentTimeMillis()
+
     val embedding = embedder.embed(biconnectedGraph).getOrElse(throw new Error("The submitted graph was not planar."))
+
+    val tAfterEmbedding = java.lang.System.currentTimeMillis()
+
     val startEdge = if (g.edges.nonEmpty) GraphCommons.outerEdges(g).head else GraphCommons.outerEdges(biconnectedGraph).head
-    computeDrawing(embedding, (startEdge._1, startEdge._2))
+    val finalDrawing = computeDrawing(embedding, (startEdge._1, startEdge._2))
+
+    val tAfterDrawing = java.lang.System.currentTimeMillis()
+
+    //TODO remove after linear embedding algorithm has been measured.
+    println("Total time: " + TimeUnit.MILLISECONDS.toSeconds(tAfterDrawing - tBeforeEmbedding))
+    println("Time to embed: " + TimeUnit.MILLISECONDS.toSeconds(tAfterEmbedding - tBeforeEmbedding))
+    println("Time to draw: " +  TimeUnit.MILLISECONDS.toSeconds(tAfterDrawing - tAfterEmbedding))
+    println("----------------------------------")
+
+    // Remove any dummy-edges
+    val dummySet = biconnectData.extraEdges.toSet
+    finalDrawing.updateEdges(finalDrawing.edges.filterNot(e => dummySet.contains(e) || dummySet.contains((e._2, e._1))))
   }
 
   /**
     * Computes a planar grid drawing with every vertex occupying a single coordinate.
-    * @param e A planar biconnectd embedding.
+    * @param e A planar biconnected embedding.
     * @param startEdge An edge in the embedding that should be used as the bottom edge in the drawing (v1 to v2).
     *                  This edge may be used to affect the final drawing, as its left face (when traversing the faces of
     *                  the embedding counter clockwise in each vertex edge set) will be the first internal face of the
     *                  drawing.
     * @return A grid drawing of the embedding.
     */
-  def computeDrawing(e: Embedding[Int], startEdge: (Int, Int)): GridDrawing = {
-    computeRectangleDrawing(e, startEdge, e.embeddedVertices.map(v => v -> Dimensions(1, 1)).toMap)
-  }
-
-  /**
-    * Specifies rectangle dimensions for each vertex, causing the final drawing to space vertex coordinates apart in
-    * order to avoid rectangle overlap.
-    * @param e A planar biconnectd embedding.
-    * @param startEdge An edge in the embedding that should be used as the bottom edge in the drawing (v1 to v2).
-    *                  This edge may be used to affect the final drawing, as its left face (when traversing the faces of
-    *                  the embedding counter clockwise in each vertex edge set) will be the first internal face of the
-    *                  drawing.
-    * @param rectangles Maps each vertex in the embedding to the dimensions of the rectangle that it should be drawn as.
-    * @return A grid drawing of the embedding.
-    */
-  def computeRectangleDrawing(e: Embedding[Int], startEdge: (Int, Int), rectangles: Map[Int, Dimensions]): GridDrawing = {
-    require(rectangles.keySet == e.embeddedVertices.toSet, "Every vertex in the embedding did not have a rectangle dimension specified.")
+  def computeDrawing(e: Embedding[Int], startEdge: (Int, Int)): StraightLineDrawing[Int] = {
     require(e.embeddingFor(startEdge._1).containsEntryFor(startEdge._2), "The start edge " + startEdge + " was not found in the embedding.")
     val canonicalOrder: Vector[Int] = new BCanonicalOrder((e: Embedding[Int]) => startEdge).order(e)
 
     // Associate each vertex with an index, for use in the binary tree
     val indexVertexOrder = canonicalOrder.zipWithIndex.map(_._2)
     val originalToIndex: Map[Int, Int] = canonicalOrder.zip(indexVertexOrder).toMap
-    val indexToOriginal = originalToIndex.map(_.swap)
     val indexEmbedding = e.map(originalToIndex)
     val nrOfVertices = originalToIndex.size
 
@@ -92,8 +86,6 @@ class PlanarGridAlgorithm {
     val y = Array.fill(nrOfVertices)(0)
     val deltaX = Array.fill(nrOfVertices)(0)
     var lrTree = new LeftRightTree(nrOfVertices)
-    var children = Map[Int, (Int, Int)]()
-    var cover = Map[Int, Vector[Int]]()
 
     /* Begin the algorithm by setting default values for the first three vertices in the canonical order(v1, v2, v3) */
     val v1 = originalToIndex(canonicalOrder(0))
@@ -107,7 +99,7 @@ class PlanarGridAlgorithm {
 
     var contour = new Contour(v1, v2, indexEmbedding)
 
-    // Special case: Data for vertex v3 is set up if more than 2 vertices exists.
+    /* Special case: Data for vertex v3 is set up if more than 2 vertices exists. */
     if (canonicalOrder.length > 2) {
       val v3 = originalToIndex(canonicalOrder(2))
       deltaX(v3) = 1
@@ -115,20 +107,16 @@ class PlanarGridAlgorithm {
 
       /* v3 is the right child of v1, v2 is the right child of v3 as the current outer contour C(k) (k = 3) is 1, 3, 2. */
       lrTree = lrTree.addRight(v1, v3).addRight(v3, v2)
-      children += ((indexToOriginal(v3), (indexToOriginal(v1), indexToOriginal(v2))))
       contour = contour.addVertex(v3).newContour
     }
 
     /* Add every vertex to the drawing and compute their y-coordinates and x-offsets. */
     for (vk <- 3 until nrOfVertices) {
       val modification = contour.addVertex(vk)
-      children += ((indexToOriginal(vk), (indexToOriginal(modification.leftNeighbor), indexToOriginal(modification.rightNeighbor))))
-      cover += ((indexToOriginal(vk), modification.vertexCover.map(indexToOriginal)))
 
       /* Let w(p) ... w(q) be the neighbors of v on C(k-1) from left to right.
        * Adjust the x-offset of w(p+1) and w(q) by 1.
        */
-      //TODO Increment w(q) by 2 if w(q) == w(p+1) ? Doing it for now. Delete this comment if no errors are found.
       val neighborsPastLeftChild = modification.vertexCover :+ modification.rightNeighbor
       deltaX(modification.rightNeighbor) += 1
       deltaX(neighborsPastLeftChild.head) += 1
@@ -138,12 +126,12 @@ class PlanarGridAlgorithm {
 
       // deltaX(vk) = 1/2 * [-y(wp) + deltaX(wp, wq) + y(wq)]
       val xDelta = -y(modification.leftNeighbor) + deltaPQ + y(modification.rightNeighbor)
-      assert(xDelta % 2 == 0, "Odd delta detected, cannot be divided by 2 and still be a valid grid coordinate.")
+      assert(xDelta % 2 == 0, "Odd x-delta found.")
       deltaX(vk) = (0.5 * xDelta).toInt
 
       // y(vk) = 1/2 * [y(wp) + deltaX(wp, wq) + y(wq)]
       val yValue = y(modification.leftNeighbor) + deltaPQ + y(modification.rightNeighbor)
-      assert(xDelta % 2 == 0, "Odd y-value detected, cannot be divided by 2 and still be a valid grid coordinate.")
+      assert(yValue % 2 == 0, "Odd y value found.")
       y(vk) = (0.5 * yValue).toInt
 
       // deltaX(wq) = deltaX(wp, wq) - deltaX(vk)
@@ -177,9 +165,12 @@ class PlanarGridAlgorithm {
       Point(deltaX(indexV), y(indexV))
     }).toMap
 
-    new GridDrawing(canonicalOrder, e.edges, coordinates, Map())
+    new StraightLineDrawing(e.embeddedVertices, e.edges, coordinates, coordinates.values.maxBy(_.x).x + 1, coordinates.values.maxBy(_.y).y + 1)
   }
 
+  /* Traverses the tree and sets x-offsets for each node according to the acummulated offset values for the nodes
+   * before it.
+   */
   private def accumulateXOffsets(v: Int, tree: LeftRightTree, deltaX: Array[Int], value: Int = 0): Unit = {
     deltaX(v) = deltaX(v) + value
 

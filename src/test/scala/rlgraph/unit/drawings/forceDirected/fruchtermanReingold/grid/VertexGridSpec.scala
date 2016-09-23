@@ -1,6 +1,6 @@
 package rlgraph.unit.drawings.forceDirected.fruchtermanReingold.grid
 
-import net.cyndeline.rlcommon.math.geom.{DPoint, Point}
+import net.cyndeline.rlcommon.math.geom.{DPoint, Point, RPoint}
 import net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold.grid.{GridRectangle, VertexGrid}
 import rlgraph.SpecImports
 
@@ -61,7 +61,7 @@ class VertexGridSpec extends SpecImports {
       val g: VertexGrid = rAndGrid._2
 
       Then("the grid should contain a rectangle of size 1x1")
-      r.center should be (DPoint(0, 0))
+      r.center should be (RPoint(0, 0))
       g.vertices(id) should be (r)
 
     }
@@ -132,7 +132,7 @@ class VertexGridSpec extends SpecImports {
       upperGrid should have size 1
       val movedRect = upperGrid.head
       movedRect.id should be (0)
-      movedRect.start should be (Point(0, 0))
+      movedRect.start should be (RPoint(0, 0))
 
     }
 
@@ -148,8 +148,8 @@ class VertexGridSpec extends SpecImports {
       val gridAfterMoving = grid.move(r, -5, -5)
 
       Then("the rectangle in the vertex map should use the new coordinate")
-      gridAfterMoving.vertices(id).start should be (Point(0, 0))
-      gridAfterMoving.vertices(id).center should be (DPoint(0, 0))
+      gridAfterMoving.vertices(id).start should be (RPoint(0, 0))
+      gridAfterMoving.vertices(id).center should be (RPoint(0, 0))
 
     }
 
