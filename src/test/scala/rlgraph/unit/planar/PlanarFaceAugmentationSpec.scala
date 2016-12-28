@@ -122,6 +122,20 @@ class PlanarFaceAugmentationSpec extends SpecImports {
 
     }
 
+    it ("should embed edges to a single vertex in different order from its neighbors") {
+
+      Given("a face with vertices A to I")
+      val f = circularFaceAtoI
+      import f._
+
+      When("embedding edges [A,B,F,G] to D in the order A, G, B, F")
+      val updatedEmbedding = faceAug.embedEdges(Vector(("A", "D"), ("G", "D"), ("B", "D"), ("F", "D")), face, embedding)
+
+      Then("the edge order around D should be C, E, F, G, A, B")
+      updatedEmbedding.embeddingFor("D").clockwiseIteratorFrom("C").toVector.map(_.adjacentVertex) should be (Vector("C", "E", "F", "G", "A", "B"))
+
+    }
+
   }
 
 }

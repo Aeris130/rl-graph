@@ -1,7 +1,6 @@
 package net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold.grid
 
-import net.cyndeline.rlcommon.math.geom.{DPoint, Point, RPoint, Rectangle}
-import spire.math.Rational
+import net.cyndeline.rlcommon.math.geom.{Point, Rectangle}
 
 /**
   * @param id A unique identifier belonging to the vertex represented by this rectangle.
@@ -9,13 +8,13 @@ import spire.math.Rational
   * @param w Rectangle width.
   * @param h Rectangle height.
   */
-class GridRectangle(val id: Int, val s: Point, val w: Int, val h: Int) extends Rectangle(RPoint(s), Rational(w), Rational(h)) {
+class GridRectangle(val id: Int, val s: Point, val w: Int, val h: Int) extends Rectangle(s, w, h) {
 
   /** The center coordinate of the rectangle. */
-  val center: RPoint = RPoint(start.x + (width / 2).floor, start.y + (height / 2).floor)
+  val center: Point = Point(start.x + Math.floor(width.toDouble / 2).toInt, start.y + Math.floor(height.toDouble / 2).toInt)
 
   /** Exclusive ending coordinate for the rectangle. */
-  val stopCoordinate: RPoint = start + (width, height)
+  val stopCoordinate: Point = start + (width, height)
 
   /**
     * @param dx Amount to modify the rectangles x coordinate by.
@@ -25,7 +24,7 @@ class GridRectangle(val id: Int, val s: Point, val w: Int, val h: Int) extends R
     */
   def move(dx: Int, dy: Int, grid: VertexGrid): GridRectangle = {
     val errorStr = "Attempted to move rectangle outside vertex grid bounds: " + GridRectangle
-    val moved = GridRectangle(id, Point(start + (dx, dy)), w, h)
+    val moved = GridRectangle(id, start + (dx, dy), w, h)
     require(moved.isInside(grid), errorStr)
     moved
   }

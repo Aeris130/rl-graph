@@ -26,7 +26,7 @@ class FaceComputation[VType : TypeTag : ClassTag] extends ComputeFaceOperation[V
   /**
    * Compute the faces of a graph.
    *
-   * @param embedding A planar embedding of a graph connected graph, where edges are embedded in a clockwise
+   * @param embedding A planar embedding of a connected graph, where edges are embedded in a clockwise
    *                  order around each vertex.
    * @return A list of faces, where each face is represented by a list of vertices in the order they are
    *         traversed around the face. The last entry in the face is implied to be connected to the first.

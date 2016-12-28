@@ -46,7 +46,7 @@ class FourConnectivityTriangulation[VType: TypeTag : ClassTag] {
     // Maps every vertex that is a member of a non-triangular face to the set of face it's a member of.
     val facesConnectedToVertex = vertexToFaceMap(allNonTriangularFaces)
 
-    while(!facesConnectedToVertex.isEmpty) {
+    while(facesConnectedToVertex.nonEmpty) {
       val v = facesConnectedToVertex.keys.maxBy(degree(_, currentEmbedding))
       val face = facesConnectedToVertex(v).head // Arbitrary which face is selected
       val vertexList = new DoubleLinkedList(face.vertices:_*)
@@ -172,11 +172,11 @@ class FourConnectivityTriangulation[VType: TypeTag : ClassTag] {
 
   private def registerFace(face: Face[VType], faceMap: mutable.HashMap[VType, mutable.HashSet[Face[VType]]]) {
     for (vertexInFace <- face.vertices) {
-      val currentFaces = faceMap.get(vertexInFace).getOrElse {
+      val currentFaces = faceMap.getOrElse(vertexInFace, {
         val newSet = new mutable.HashSet[Face[VType]]()
         faceMap += vertexInFace -> newSet
         newSet
-      }
+      })
       currentFaces.add(face)
     }
   }

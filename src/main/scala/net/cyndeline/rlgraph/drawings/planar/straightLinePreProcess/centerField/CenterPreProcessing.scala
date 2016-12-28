@@ -1,6 +1,6 @@
 package net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.centerField
 
-import net.cyndeline.rlcommon.math.geom.{Centroid, Line, Point, RPoint}
+import net.cyndeline.rlcommon.math.geom.{Centroid, Line, Point}
 import net.cyndeline.rlgraph.drawings.StraightLineDrawing
 import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.common.VertexAdjustment
 import net.cyndeline.rlgraph.util.GraphCommons
@@ -95,7 +95,7 @@ class CenterPreProcessing(vertices: Vector[Int],
       val pointCandidates = lineToMoveALong.split(7).distinct.filterNot(_ == vCoordinate).iterator
 
       while (pointCandidates.hasNext) {
-        val nextPoint: RPoint = pointCandidates.next()
+        val nextPoint = pointCandidates.next()
         val withNewPos = adjustmentFactory.moveVertex(v, Point(nextPoint))
 
         if (withNewPos.isDefined)
@@ -115,8 +115,8 @@ class CenterPreProcessing(vertices: Vector[Int],
     } else {
       val neighborPoints = neighbors.map(adjustmentFactory.coordinate)
       val oldPoint: Point = adjustmentFactory.coordinate(v)
-      val centroid = Centroid.fromPoints(neighborPoints.map(RPoint(_)))
-      processPointCandidates(Line(centroid, RPoint(oldPoint)), None)
+      val centroid = Centroid.fromPoints(neighborPoints)
+      processPointCandidates(Line(centroid, oldPoint), None)
     }
   }
 

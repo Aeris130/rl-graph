@@ -1,6 +1,8 @@
 package net.cyndeline.rlgraph.triangulation.util
 
+import net.cyndeline.rlgraph.embedding.Embedding
 import net.cyndeline.rlgraph.face.Face
+import net.cyndeline.rlgraph.planar.PlanarFaceAugmentation
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
@@ -24,7 +26,7 @@ class ZigZag[VType : ClassTag](face: Face[VType], first: VType, last: VType) ext
   if(face.vertexSize < 4)
     throw new IllegalArgumentException("Cannot zig-zag faces with less than 4 vertices.")
   else if (face.vertices.toSet.size != face.vertices.size)
-    throw new IllegalArgumentException("Cannot zig-zag faces that aren't cycles (" + face + ").")
+    throw new IllegalArgumentException(s"Cannot zig-zag faces that aren't cycles ($face).")
 
   /** Every edge needed to zig-zag the face. Edges will always go from a vertex on the lower half of n
     * (where the face contains n vertices) to a vertex on the upper half. Example: Given a face with
@@ -40,7 +42,7 @@ class ZigZag[VType : ClassTag](face: Face[VType], first: VType, last: VType) ext
   private def computeEdges: Vector[(VType, VType)] = {
     val nodesInFace: Array[VType] = rearrangeVertices
     var start = 1 // Second element in the face
-    var end = nodesInFace.size - 1 // Last element in the face
+    var end = nodesInFace.length - 1 // Last element in the face
     var updateStart = false
     val result = new ArrayBuffer[(VType, VType)]()
 

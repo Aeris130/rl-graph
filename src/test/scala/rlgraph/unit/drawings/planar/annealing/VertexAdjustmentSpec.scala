@@ -19,7 +19,7 @@ class VertexAdjustmentSpec extends SpecImports {
     val graph = Graph[Int, UnDiEdge](v._1)
     val coordinates = Map(v)
     val dimensions = Map(v._1 -> Dimensions(3, 3))
-    val border = Rectangle(RPoint(0, 0), RPoint(5, 5))
+    val border = Rectangle(Point(0, 0), Point(5, 5))
     val drawing = ProduceDrawing(coordinates, graph)
     val adjust = VertexAdjustment(drawing, graph, 6, dimensions)
   }
@@ -458,7 +458,7 @@ class VertexAdjustmentSpec extends SpecImports {
       val v = (1, Point(2, 3))
       val graph = Graph[Int, UnDiEdge](v._1)
       val coordinates = Map(v)
-      val border = Rectangle(RPoint(0, 0), RPoint(5, 5))
+      val border = Rectangle(Point(0, 0), Point(5, 5))
       val drawing = ProduceDrawing(coordinates, graph)
       val adjust = VertexAdjustment(drawing, graph, border.width.toInt, Map())
 
@@ -468,8 +468,8 @@ class VertexAdjustmentSpec extends SpecImports {
       val middle = adjust.moveVertex(v._1, Point(0, 2))
 
       Then("the vertex should have its coordinate updated accordingly")
-      lower.get.coordinate(v._1) should be (Point(border.start))
-      upper.get.coordinate(v._1) should be (Point(border.stop))
+      lower.get.coordinate(v._1) should be (border.start)
+      upper.get.coordinate(v._1) should be (border.stop)
       middle.get.coordinate(v._1) should be (Point(0, 2))
 
     }
@@ -480,7 +480,7 @@ class VertexAdjustmentSpec extends SpecImports {
       val v = (1, Point(2, 3))
       val graph = Graph[Int, UnDiEdge](v._1)
       val coordinates = Map(v)
-      val border = Rectangle(RPoint(0, 0), RPoint(5, 5))
+      val border = Rectangle(Point(0, 0), Point(5, 5))
       val drawing = ProduceDrawing(coordinates, graph)
       val adjust = VertexAdjustment(drawing, graph, border.width.toInt, Map())
 

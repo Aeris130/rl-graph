@@ -1,12 +1,10 @@
 package net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.annealing
 
 import net.cyndeline.rlcommon.math.geom.{Dimensions, Point, Rectangle}
-import net.cyndeline.rlcommon.math.SpireRational._
-import net.cyndeline.rlcommon.math.geom.spatialIndex.kdTree.KDTree
 import net.cyndeline.rlgraph.drawings.StraightLineDrawing
+import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.{CostFunction, LayoutState}
 import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.annealing.AnnealingProcess.Settings
 import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.common.VertexAdjustment
-import spire.math.Rational
 
 import scala.util.Random
 import scalax.collection.GraphEdge.UnDiEdge
@@ -22,11 +20,11 @@ import scalax.collection.immutable.Graph
   *
   * @param vertices The number of vertices to modify. Assumes that vertices goes from 0 to (vertices - 1)
   */
-class AnnealingProcess private(vertices: Int,
-                               score: Rational,
-                               state: LayoutState,
-                               adjustmentFactory: VertexAdjustment,
-                               settings: Settings) {
+class AnnealingProcess[S <: LayoutState[S]] private(vertices: Int,
+                                                   score: Double,
+                                                   state: LayoutState[S],
+                                                   adjustmentFactory: VertexAdjustment,
+                                                   settings: Settings[S]) {
 
   /** @return Every vertex-coordinate at the current state of the process. */
   def coordinates: Map[Int, Point] = adjustmentFactory.coordinate
@@ -44,7 +42,7 @@ class AnnealingProcess private(vertices: Int,
     * @param newCooling     New cooling value to use.
     * @return A new process using the current segments of the old process, but with a new temperature and cooling.
     */
-  def reset(newTemperature: Rational, newCooling: Rational) = updateSettings(settings.setTemperature(newTemperature).setCooling(newCooling))
+  def reset(newTemperature: Double, newCooling: Double) = updateSettings(settings.setTemperature(newTemperature).setCooling(newCooling))
 
   /** @return A new process having its temperature decreased by temp * cooling. */
   def cool = updateSettings(settings.setTemperature(settings.temperature * settings.cooling))
@@ -54,7 +52,7 @@ class AnnealingProcess private(vertices: Int,
     * @return A copy of this process with x * n modifications attempted, where x is the number of iterations, and n
     *         is the number of vertices in the process.
     */
-  def run(iterations: Int, random: Random): Option[AnnealingProcess] = {
+  def run(iterations: Int, random: Random): Option[AnnealingProcess[S]] = {
     // State-related data
     var currentState = state
     var currentAdjustment = adjustmentFactory
@@ -67,16 +65,16 @@ class AnnealingProcess private(vertices: Int,
       var v = 0
       while (v < vertices) {
         val angle = random.nextInt(360)
-        val pos = currentAdjustment.coordinate(v).move(angle, settings.temperature)
-        val adjusted = currentAdjustment.moveVertex(v, pos)
+        val oldPos = currentAdjustment.coordinate(v)
+        val newPos = oldPos.move(angle, settings.temperature)
+        val adjusted = currentAdjustment.moveVertex(v, newPos)
 
         // Discard change if edge crossings occurred
         if (adjusted.isDefined) {
 
           // Update the state of the layout
-          val newState = currentState.move(v, adjusted.get)
+          val newState = currentState.moveVertex(v, oldPos, newPos)
           val vertexScore = AnnealingProcess.scoreLayout(newState, v, settings, vertices)
-
           val newScore = currentScore - currentState.score(v) + vertexScore
 
           if (newScore < currentScore) {
@@ -88,7 +86,7 @@ class AnnealingProcess private(vertices: Int,
              * otherwise balancing may be done multiple times if the n:th state is scheduled for balancing and
              * the (n-1)th state produces multiple changes that all receives a lower score than itself.
              */
-            currentState = newState.balance.updateScore(v, vertexScore)
+            currentState = newState.registerChange(v, oldPos, newPos).setScore(v, vertexScore)
           }
         }
 
@@ -104,10 +102,10 @@ class AnnealingProcess private(vertices: Int,
       None
   }
 
-  private def updateSettings(newSettings: Settings) = new AnnealingProcess(vertices, score, state, adjustmentFactory, newSettings)
+  private def updateSettings(newSettings: Settings[S]) = new AnnealingProcess(vertices, score, state, adjustmentFactory, newSettings)
 
-  private def updateState(newScore: Rational, newState: LayoutState, newAdjustment: VertexAdjustment) =
-    new AnnealingProcess(vertices, newScore, newState, newState.layout, settings)
+  private def updateState(newScore: Double, newState: LayoutState[S], newAdjustment: VertexAdjustment) =
+    new AnnealingProcess(vertices, newScore, newState, newAdjustment, settings)
 
 }
 
@@ -119,72 +117,45 @@ object AnnealingProcess {
     * @param graph The original graph, containing edge-neighbor relationships.
     * @param border Size b of the border, signifying a border from (0,0) to (b-1,b-1) that movements must reside within
     *               to be considered valid.
-    * @param vertexRectangles Specifies dimensions for rectangles representing vertices. If a vertex is missing an
-    *                         entry, it will be considered as a 1x1 rectangle.
     * @param settings Parameters for the algorithm.
     * @return An initial algorithm used to adjst the drawing based on its cost functions.
     */
-  def apply(drawing: StraightLineDrawing[Int],
-            graph: Graph[Int, UnDiEdge],
-            border: Int,
-            vertexRectangles: Map[Int, Dimensions],
-            settings: Settings): AnnealingProcess = {
+  def apply[S <: LayoutState[S]](drawing: StraightLineDrawing[Int],
+                                 graph: Graph[Int, UnDiEdge],
+                                 border: Int,
+                                 settings: Settings[S],
+                                 state: S): AnnealingProcess[S] = {
     require(border >= drawing.width && border >= drawing.height, "Border dimensions must be >= input drawing.")
     require(border > 0, "Border must be >= 1.")
-    val adjustment = VertexAdjustment(drawing, graph, border, vertexRectangles)
-    val tree = KDTree.rectangleTree(drawing.vertices.map(adjustment.rectangle))
-    var state = new LayoutState(border, adjustment, tree, settings)
-    val vAmount = drawing.vertices.size
+    val adjustment = VertexAdjustment(drawing, graph, border, Map())
+    var newState = state.setLayout(drawing.setSize(Dimensions(border, border)), graph)
 
     var i = 0
     val stop = drawing.vertices.size
     while (i < stop) {
-      val vertexScore = scoreLayout(state, i, settings, vAmount)
-      state = state.updateScore(i, vertexScore)
+      val vertexScore = settings.costFunctions.map(_.score(newState, i))
+      newState = newState.setScore(i, vertexScore.sum)
       i += 1
     }
 
-    new AnnealingProcess(drawing.vertices.size, state.score.sum, state, adjustment, settings)
+    new AnnealingProcess(drawing.vertices.size, newState.totalScore, newState, adjustment, settings)
   }
 
-  private def scoreLayout(state: LayoutState, v: Int, settings: Settings, vertexAmount: Int): Rational = {
-
-    // Optimize as much as possible by skipping checks that will get multiplied to zero anyway.
-    val edgeScore = if (!settings.edgeWeight.isZero)
-      CostFunctions.edgeLength(state, v, settings.targetEdgeLength, vertexAmount) * settings.edgeWeight
-    else
-      Rational.zero
-
-    val borderScore = if (!settings.borderWeight.isZero)
-      CostFunctions.borderLines(state, v) * settings.borderWeight
-    else
-      Rational.zero
-
-    val distributionScore = if (!settings.distributionWeight.isZero)
-      CostFunctions.vertexDistribution(state, v, vertexAmount) * settings.distributionWeight
-    else
-      Rational.zero
-
-    edgeScore + borderScore + distributionScore
+  private def scoreLayout[S <: LayoutState[S]](state: S, v: Int, settings: Settings[S], vertexAmount: Int): Double = {
+    settings.costFunctions.flatMap(f => if (f.weight != 0) Some(f.score(state, v)) else None).sum
   }
 
   /** Misc data needed for computations. */
-  case class Settings(temperature: Rational,
-                      cooling: Rational,
-                      targetEdgeLength: Rational,
-                      edgeWeight: Rational,
-                      borderWeight: Rational,
-                      distributionWeight: Rational) {
+  case class Settings[S <: LayoutState[S]](temperature: Double,
+                                           cooling: Double,
+                                           costFunctions: Vector[CostFunction[S]]) {
 
-    require(targetEdgeLength >= Rational.zero && edgeWeight >= Rational.zero && borderWeight >= Rational.zero, "Cost weights must be >= 0.")
-    require(cooling > Rational.zero, "Cooling must be greater than 0")
-    require(cooling < Rational.one, "Cooling must be less than 1")
+    require(cooling > 0, "Cooling must be greater than 0")
+    require(cooling <= 1, "Cooling must be less than or equal to 1")
 
-    def setTargetEdgeLength(newLength: Rational) = Settings(temperature, cooling, newLength, edgeWeight, borderWeight, distributionWeight)
+    def setTemperature(newTemp: Double) = Settings(newTemp, cooling, costFunctions)
 
-    def setTemperature(newTemp: Rational) = Settings(newTemp, cooling, targetEdgeLength, edgeWeight, borderWeight, distributionWeight)
-
-    def setCooling(newCooling: Rational) = Settings(temperature, newCooling, targetEdgeLength, edgeWeight, borderWeight, distributionWeight)
+    def setCooling(newCooling: Double) = Settings(temperature, newCooling, costFunctions)
 
   }
 

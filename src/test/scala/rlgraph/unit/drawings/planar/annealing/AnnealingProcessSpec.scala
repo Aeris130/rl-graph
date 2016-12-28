@@ -6,7 +6,8 @@ import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.annealing.An
 import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.annealing.AnnealingProcess.Settings
 import rlgraph.SpecImports
 import rlgraph.help.ProduceDrawing
-import net.cyndeline.rlcommon.math.SpireRational._
+import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.DefaultState
+import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.costFunctions.{BorderLinesScore, DistributionScore, EdgeLengthScore}
 
 import scala.util.Random
 import scalax.collection.GraphEdge.UnDiEdge
@@ -20,38 +21,35 @@ class AnnealingProcessSpec extends SpecImports {
   /* To make the tests run faster and more predictable, a single coordinate's worth
    * of movement is used as temperature.
    */
-  private def singleSetting(scoreToUse: String, score: Int = 1): Settings = scoreToUse match {
-    case "Edge" => singleSetting(score, 0, 0)
-    case "Border" => singleSetting(0, score, 0)
-    case "Distribution" => singleSetting(0, 0, score)
-    case "All" => singleSetting(score, score, score)
+  private def singleSetting(scoreToUse: String, score: Int, targetEdgeLength: Int = 0): Settings[DefaultState] = scoreToUse match {
+    case "Edge" => singleSetting(score, 0, 0, targetEdgeLength)
+    case "Border" => singleSetting(0, score, 0, targetEdgeLength)
+    case "Distribution" => singleSetting(0, 0, score, targetEdgeLength)
+    case "All" => singleSetting(score, score, score, targetEdgeLength)
   }
 
-  private def singleSetting(ew: Int, bw: Int, dw: Int): Settings = Settings(
+  private def singleSetting(ew: Int, bw: Int, dw: Int, targetEdgeLength: Int): Settings[DefaultState] = Settings[DefaultState](
     temperature = 2, // 1 might be rounded down to 0 when moving diagonally
     cooling = 0.5,
-    targetEdgeLength = 0,
-    edgeWeight = ew,
-    borderWeight = bw,
-    distributionWeight = dw
+    Vector(new EdgeLengthScore(ew, targetEdgeLength), new BorderLinesScore(bw), new DistributionScore(dw, 20))
   )
 
   private def buildProcess(vertices: Map[Int, Point],
                            graph: Graph[Int, UnDiEdge],
                            border: Int,
-                           rectangles: Map[Int, Dimensions] = Map(),
-                           settings: Settings = singleSetting("All")) = {
+                           settings: Settings[DefaultState] = singleSetting("All", 1)) = {
     val drawing = ProduceDrawing(vertices, graph)
-    AnnealingProcess(drawing, graph, border, rectangles, settings)
+    val state = new DefaultState()
+    AnnealingProcess(drawing, graph, border, settings, state)
   }
 
   // A single vertex in a border from (0,0) to (6,6). Uses border-scores only.
-  private def singleVertex(point: Point, rectangle: Dimensions = Dimensions(1, 1)) = new {
+  private def singleVertex(point: Point) = new {
     val drawingSize = 7
     val v = (0, point)
     val graph = Graph[Int, UnDiEdge](v._1)
     val coordinates = Map(v)
-    val process = buildProcess(coordinates, graph, drawingSize, Map(v._1 -> rectangle), singleSetting("Border"))
+    val process = buildProcess(coordinates, graph, drawingSize, singleSetting("Border", 1))
   }
 
   // Two vertices in a 6x6 border
@@ -61,7 +59,7 @@ class AnnealingProcessSpec extends SpecImports {
     val v2 = (1, v2P)
     val graph = Graph[Int, UnDiEdge](v1._1 ~ v2._1)
     val coordinates = Map(v1, v2)
-    val process = buildProcess(coordinates, graph, drawingSize, Map(), singleSetting("Edge").setTargetEdgeLength(targetLength))
+    val process = buildProcess(coordinates, graph, drawingSize, singleSetting("Edge", 1, targetLength))
   }
 
   describe("AnnealingProcess") {
@@ -111,13 +109,14 @@ class AnnealingProcessSpec extends SpecImports {
       val targetLength = 3
       val f = doubleEdgeTarget(Point(0, 3), Point(6, 3), targetLength)
       import f._
-      assert(v1._2.distanceTo(v2._2) > targetLength)
+      val initialLength = v1._2.distanceTo(v2._2)
+      assert(initialLength > targetLength)
 
       When("running the process multiple times using only edge distance as score")
       val running = process.run(100, random).get
 
-      And("the distance between both vertices should be the target length")
-      assert(running.coordinates(v1._1).distanceTo(running.coordinates(v2._1)) == targetLength)
+      And("the distance between both vertices should be less than the intial length")
+      assert(running.coordinates(v1._1).distanceTo(running.coordinates(v2._1)) < initialLength)
 
     }
 
@@ -127,13 +126,14 @@ class AnnealingProcessSpec extends SpecImports {
       val targetLength = 4
       val f = doubleEdgeTarget(Point(4, 3), Point(5, 3), targetLength)
       import f._
-      assert(v1._2.distanceTo(v2._2) < targetLength)
+      val initialLength = v1._2.distanceTo(v2._2)
+      assert(initialLength < targetLength)
 
       When("running the process multiple times using only edge distance as score")
       val running = process.run(100, random).get
 
-      And("the distance between both vertices should be the target length")
-      assert(running.coordinates(v1._1).distanceTo(running.coordinates(v2._1)) == targetLength)
+      And("the distance between both vertices should be greater than the initial length")
+      assert(running.coordinates(v1._1).distanceTo(running.coordinates(v2._1)) > initialLength)
 
     }
 
@@ -176,21 +176,6 @@ class AnnealingProcessSpec extends SpecImports {
 
     }
 
-    it("should not move a vertex that occupies the border in all directions") {
-
-      Given("a drawing from (0,0) to (6,6), and a vertex from (0,0) to (6,6)")
-      val f = singleVertex(Point(3, 3), Dimensions(7, 7))
-      import f._
-      assert(drawingSize == 7)
-
-      When("running the process multiple times using only border distance as score")
-      val running = process.run(100, random)
-
-      Then("no changes should be made to the vertex")
-      running should be (None)
-
-    }
-
     it("should not move a vertex already at the center of the borders despite it having space to move") {
 
       Given("a single-point vertex centered in a drawing")
@@ -218,7 +203,7 @@ class AnnealingProcessSpec extends SpecImports {
       val v3 = (2, Point(6, 6)) // On the far opposite end of the others
       val graph = Graph[Int, UnDiEdge](v1._1 ~ v2._1, v2._1 ~ v3._1)
       val coordinates = Map(v1, v2, v3)
-      val process = buildProcess(coordinates, graph, drawingSize, Map(), singleSetting("Distribution"))
+      val process = buildProcess(coordinates, graph, drawingSize, singleSetting("Distribution", 1))
 
       When("running the process multiple times using only vertex distribution as score")
       val running = process.run(1000, random).get

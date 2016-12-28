@@ -123,7 +123,7 @@ class VertexGrid(cellWidth: Int, cellHeight: Int, grid: Vector[Vector[RectangleS
     * @param v A vertex rectangle.
     * @return Start and stop values for every cell index overlapped by that rectangle.
     */
-  private def cellInterval(v: GridRectangle): (Int, Int, Int, Int) = cellInterval(Point(v.start), v.width.intValue(), v.height.intValue())
+  private def cellInterval(v: GridRectangle): (Int, Int, Int, Int) = cellInterval(v.start, v.width, v.height)
 
 
   /**

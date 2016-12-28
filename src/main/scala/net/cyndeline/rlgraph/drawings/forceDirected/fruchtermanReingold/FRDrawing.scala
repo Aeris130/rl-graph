@@ -4,7 +4,6 @@ import net.cyndeline.rlcommon.math.geom._
 import net.cyndeline.rlgraph.drawings.{RVertex, StraightLineDrawing}
 import net.cyndeline.rlgraph.drawings.forceDirected.fruchtermanReingold.grid.{GridRectangle, VertexGrid}
 import net.cyndeline.rlgraph.util.GraphCommons
-import spire.math.{Algebraic, Rational}
 
 import scala.language.higherKinds
 import scalax.collection.GraphEdge.UnDiEdge
@@ -45,7 +44,7 @@ import scalax.collection.immutable.Graph
 class FRDrawing private (grid: VertexGrid,
                          graph: Graph[Int, UnDiEdge],
                          neighborRange: Int,
-                         val temperature: Rational,
+                         val temperature: Double,
                          val currentIteration: Int,
                          val maxIterations: Int,
                          force: Force) {
@@ -67,7 +66,7 @@ class FRDrawing private (grid: VertexGrid,
     val allVertices: Vector[GridRectangle] = grid.allVertices.distinct
     val rVertices: Vector[RVertex] = allVertices.map(r => RVertex(r.id, Rectangle(r.start, r.width.toInt, r.height.toInt)))
     val vertexToRVertex: Map[Int, RVertex] = rVertices.map(v => v.vertex -> v).toMap
-    val rVertexToPoint = allVertices.map(v => vertexToRVertex(v.id) -> Point(v.center)).toMap
+    val rVertexToPoint = allVertices.map(v => vertexToRVertex(v.id) -> v.center).toMap
     val edges = GraphCommons.outerEdges(graph).map(e => (vertexToRVertex(e._1), vertexToRVertex(e._2)))
     new StraightLineDrawing[RVertex](rVertices, edges, rVertexToPoint, width, height)
   }
@@ -90,8 +89,8 @@ class FRDrawing private (grid: VertexGrid,
       return this
 
     val highestId = grid.vertices.keys.max
-    var xDisplacement = Vector.fill(highestId + 1)(Rational.zero) // assumes that vertex id's are continuous from 0 to highestId
-    var yDisplacement = Vector.fill(highestId + 1)(Rational.zero)
+    var xDisplacement = Vector.fill(highestId + 1)(0d) // assumes that vertex id's are continuous from 0 to highestId
+    var yDisplacement = Vector.fill(highestId + 1)(0d)
 
     /* Compute repulsing forces */
     var allVertices = grid.vertices.toIterator
@@ -116,7 +115,7 @@ class FRDrawing private (grid: VertexGrid,
       val edge = allEdges.next()
       val v1 = edge._1
       val v2 = edge._2
-      val xyAttr: ((Rational, Rational), (Rational, Rational)) = computeAttraction(edge.toOuter)
+      val xyAttr: ((Double, Double), (Double, Double)) = computeAttraction(edge.toOuter)
       val v1XYAttraction = xyAttr._1
       val v2XYAttraction = xyAttr._2
 
@@ -137,7 +136,7 @@ class FRDrawing private (grid: VertexGrid,
       val rectangle = entry._2
       val dx = xDisplacement(rectangle.id)
       val dy = yDisplacement(rectangle.id)
-      val delta = Algebraic(dx * dx + dy * dy).sqrt.toDouble
+      val delta = Math.sqrt(dx * dx + dy * dy)
 
       // No point applying forces unless they actually move the vertex.
       if (delta - epsilon > 0) {
@@ -153,16 +152,16 @@ class FRDrawing private (grid: VertexGrid,
         val xDispWithinFrame = if (rectangle.start.x + xDisp < 0)
             -rectangle.start.x
           else if (rectangle.stopCoordinate.x + xDisp > grid.width)
-            Rational(grid.width) - rectangle.stopCoordinate.x
+            grid.width - rectangle.stopCoordinate.x
           else
-            Rational(xDisp)
+            xDisp
 
         val yDispWithinFrame = if (rectangle.start.y + yDisp < 0)
             -rectangle.start.y
           else if (rectangle.stopCoordinate.y + yDisp > grid.height)
-            Rational(grid.height) - rectangle.stopCoordinate.y
+            grid.height - rectangle.stopCoordinate.y
           else
-            Rational(yDisp)
+            yDisp
 
         updatedGrid = updatedGrid.move(rectangle, xDispWithinFrame.toInt, yDispWithinFrame.toInt)
 
@@ -180,14 +179,14 @@ class FRDrawing private (grid: VertexGrid,
     * @param v Vertex to compute repulsion forces on.
     * @return The final (x, y) disposition values that should be applied to the vertex position coordinate.
     */
-  private def computeRepulsion(v: GridRectangle): (Rational, Rational) = {
+  private def computeRepulsion(v: GridRectangle): (Double, Double) = {
     val adjacent = adjacentVertices(v)
 
     if (adjacent.isEmpty) {
       (0, 0)
 
     } else {
-      var displacement: (Rational, Rational) = (0, 0)
+      var displacement: (Double, Double) = (0, 0)
       for (adj <- adjacent if adj != v) {
 
         /* If the points overlap the delta will be 0, causing the displacement to also be 0 despite that both
@@ -195,12 +194,12 @@ class FRDrawing private (grid: VertexGrid,
          * to give the both a direction.
          */
         val adjustedCenters = if (v.center == adj.center) force.overlappingCenter(v, adj) else (v.center, adj.center)
-        val delta: RPoint = adjustedCenters._1 - adjustedCenters._2 // v.center - adj.center
+        val delta: Point = adjustedCenters._1 - adjustedCenters._2 // v.center - adj.center
 
         /* The diagonal of the rectangle between v's old point and the adjacent one using Pythagora's theorem, giving
          * an absolute value.
          */
-        val deltaLength = Math.max(epsilon, Algebraic(delta.x * delta.x + delta.y * delta.y).sqrt.toDouble)
+        val deltaLength = Math.max(epsilon, Math.sqrt(delta.x * delta.x + delta.y * delta.y))
 
         /* In the original algorithm: (Delta / |Delta|) / f_r(|Delta|) */
         val xFinalDisplacement = (delta.x / deltaLength) * force.computeRepulsingForce(v, adj)
@@ -219,20 +218,20 @@ class FRDrawing private (grid: VertexGrid,
     * @return Two x/y tuples containing the vertex displacement, where the first tuple belongs to the first vertex
     *         in the edge and vice versa.
     */
-  private def computeAttraction(edge: UnDiEdge[Int]): ((Rational, Rational), (Rational, Rational)) = {
+  private def computeAttraction(edge: UnDiEdge[Int]): ((Double, Double), (Double, Double)) = {
     val v1 = grid.vertices(edge._1)
     val v2 = grid.vertices(edge._2)
     val delta = v1.center - v2.center
-    val deltaLength = Math.max(epsilon, Algebraic(delta.x * delta.x + delta.y * delta.y).sqrt.toDouble)
+    val deltaLength = Math.max(epsilon, Math.sqrt(delta.x * delta.x + delta.y * delta.y))
 
     // X/Y displacement
-    val v1Displacement: (Rational, Rational) = attractiveDisplacement(delta, deltaLength, v1, v2)
-    val v2Displacement: (Rational, Rational) = attractiveDisplacement(delta, deltaLength, v2, v1)
+    val v1Displacement = attractiveDisplacement(delta, deltaLength, v1, v2)
+    val v2Displacement = attractiveDisplacement(delta, deltaLength, v2, v1)
 
     (v1Displacement, v2Displacement)
   }
 
-  private def attractiveDisplacement(delta: RPoint, deltaLength: Double, v: GridRectangle, neighbor: GridRectangle): (Rational, Rational) = {
+  private def attractiveDisplacement(delta: Point, deltaLength: Double, v: GridRectangle, neighbor: GridRectangle): (Double, Double) = {
     val xDisplacement = (delta.x / deltaLength) * force.computeAttractingForce(v, neighbor)
     val yDisplacement = (delta.y / deltaLength) * force.computeAttractingForce(v, neighbor)
     (xDisplacement, yDisplacement)
@@ -269,7 +268,7 @@ class FRDrawing private (grid: VertexGrid,
      * the diagonal of the rectangle + 2k to ensure that the rectangle receives repulsing forces from all directions
      * around it.
      */
-    val radiusCover = Rational(0.5 * Algebraic(c.width * c.width + c.height * c.height).sqrt.toDouble + neighborRange)
+    val radiusCover = 0.5 * Math.sqrt(c.width * c.width + c.height * c.height) + neighborRange
     val ellipse = new Ellipse(c.center, radiusCover, radiusCover)
 
     ellipse.intersectsRectangle(candidate.start, candidate.stopCoordinate) match {
@@ -320,7 +319,7 @@ object FRDrawing {
     val temperature: Double = width.toDouble / 10
 
     for (r <- rectangles) {
-      val addedRectangleAndGrid = grid.create(r._1, Point(r._2.start), r._2.width.intValue(), r._2.height.intValue())
+      val addedRectangleAndGrid = grid.create(r._1, r._2.start, r._2.width, r._2.height)
       grid = addedRectangleAndGrid._2
     }
 

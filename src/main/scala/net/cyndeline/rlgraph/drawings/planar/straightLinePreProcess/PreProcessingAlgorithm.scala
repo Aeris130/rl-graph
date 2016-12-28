@@ -1,5 +1,7 @@
 package net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess
 
+import net.cyndeline.rlcommon.math.geom.{Dimensions, Rectangle}
+import net.cyndeline.rlcommon.util.UnorderedPair
 import net.cyndeline.rlgraph.biconnectivity.biconnect.KantBodlaenderBiconnection.BiconnectivityOperation
 import net.cyndeline.rlgraph.drawings.StraightLineDrawing
 import net.cyndeline.rlgraph.drawings.planar.grid.PlanarGridAlgorithm
@@ -7,8 +9,10 @@ import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.annealing.An
 import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.centerField.CenterPreProcessing
 import net.cyndeline.rlgraph.face.FaceComputation
 import net.cyndeline.rlgraph.planar.demoucron.operation.DemoucronEmbedding
-import spire.math.Rational
+import net.cyndeline.rlgraph.util.graphConverters.IntConverter
+import scalax.collection.GraphPredef._
 
+import scala.collection.mutable
 import scala.util.Random
 import scalax.collection.GraphEdge.UnDiEdge
 import scalax.collection.immutable.Graph
@@ -44,60 +48,66 @@ class PreProcessingAlgorithm {
     * @param settings Algorithm parameters.
     * @return A straight line drawing of the graph, having been processed by the algorithm.
     */
-  def computeDrawing(g: Graph[Int, UnDiEdge], random: Random, settings: Settings): StraightLineDrawing[Int] = {
+  def computeDrawing[S <: LayoutState[S]](g: Graph[Int, UnDiEdge], random: Random, settings: Settings[S]): StraightLineDrawing[Int] = {
     if (g.isEmpty)
       return StraightLineDrawing.empty[Int]
     else if (g.size == 1)
       return StraightLineDrawing.singleVertex[Int](g.nodes.head)
 
+    val graphAt0Conversion = IntConverter.convert(g)
+    val intToOriginal = graphAt0Conversion._2.zipWithIndex.map(_.swap).toMap
+    val graph0 = graphAt0Conversion._1
+
     /* Two minimize edge length, biconnecting the graph is a task we won't leave to the grid drawing algorithm.
      * Instead the drawing will be biconnected here, and the starting edge of the drawing will be selected
      * from the longest face, ensuring a maximum number of vertices on the outer contour of the layout.
      */
-    val biconnectivity = new BiconnectivityOperation[Int]().biconnect(g)
+    val biconnectivity = new BiconnectivityOperation[Int]().biconnect(graph0)
     val graphWithExtraEdges = biconnectivity.graph
     val extraEdges = biconnectivity.extraEdges
+    val extraEdgeSet = extraEdges.map(UnorderedPair(_))
 
     val embedding = new DemoucronEmbedding[Int, UnDiEdge].embed(graphWithExtraEdges)
       .getOrElse(throw new IllegalArgumentException("Input graph was not planar"))
     val faces = new FaceComputation[Int].computeFaces(embedding)
-    val longestFace = faces.maxBy(_.vertexSize)
-    val startEdge = longestFace.edges.head
+    val longestFace = faces.maxBy(f => f.vertexSize - f.edges.count(e => extraEdgeSet.contains(UnorderedPair(e))))
+    val startEdge = (longestFace.edges.head._2, longestFace.edges.head._1)
 
     /* Step 1: Compute initial drawing. */
     val planarGridDrawing = new PlanarGridAlgorithm().computeDrawing(embedding, startEdge)
 
+    /* Biconnecting the graph may have introduced some extra edges. However, all such edges can't be removed
+     * until after the algorithm terminates, as edge intersections are how illegal moves are detected.
+     * Instead, every vertex with no neighbors in the original graph only keeps a single extra edge added to it.
+     */
+    val trimmedGraphAndDrawing = trimEdges(graphWithExtraEdges, planarGridDrawing)
+    val trimmedGraph = trimmedGraphAndDrawing._1
+    val trimmedDrawing = trimmedGraphAndDrawing._2
+
     /* Step 2: Centralize vertices based on their neighbors. */
-    var centralizer = CenterPreProcessing(planarGridDrawing)
+    var centralizer = CenterPreProcessing(trimmedDrawing)
     var i = 0
-    while (i < 2) {
+    while (i < settings.centerIterations) {
       centralizer = centralizer.adjustAll.getOrElse(centralizer)
       i += 1
     }
 
-    /* Step 3: Before modifying the vertices using the annealing algorithm, the drawing must be scaled up such that
-     * every vertex rectangle is guaranteed to fit within its borders. The drawings bound is also increased by a
-     * user-specified constant, to give the algorithm more space to adjust rectangles around.
-     */
-    val scaledDrawing = StraightLineDrawing
-      .scale(planarGridDrawing.updateCoordinates(centralizer.allCoordinates), settings.rectangles)
+    val centralizedDrawing = trimmedDrawing.updateCoordinates(centralizer.allCoordinates)
 
-    val finalSize = (settings.boundMultiplier * Math.max(scaledDrawing.width, scaledDrawing.height)).toInt
+    val finalSize = (settings.boundMultiplier * Math.max(centralizedDrawing.width, centralizedDrawing.height)).toInt
     val adjustCoordinatesBy = finalSize / 2
 
     // Final drawing before modification
-    val adjustedDrawing = StraightLineDrawing.adjust(adjustCoordinatesBy, adjustCoordinatesBy, scaledDrawing)
+    val adjustedDrawing = centralizedDrawing.adjust(adjustCoordinatesBy, adjustCoordinatesBy)
 
-    /* Step 4: Run annealing algorithm. */
+    /* Step 3: Run annealing algorithm. */
     val annealingSettings = AnnealingProcess.Settings(
-      temperature = Rational(finalSize) * 0.8,
-      cooling = Rational(settings.cooling),
-      targetEdgeLength = Rational(settings.targetEdgeLength),
-      edgeWeight = Rational(settings.edgeWeight),
-      borderWeight = Rational(settings.borderWeight),
-      distributionWeight = Rational(settings.distributionWeight)
+      temperature = finalSize * 0.8,
+      cooling = settings.cooling,
+      costFunctions = settings.costFunctions
     )
-    var annealingAlgorithm = AnnealingProcess(adjustedDrawing, graphWithExtraEdges, finalSize, settings.rectangles, annealingSettings)
+
+    var annealingAlgorithm = AnnealingProcess(adjustedDrawing, trimmedGraph, finalSize, annealingSettings, settings.initialState)
     var conseqFailedAttempts = 0
     var temperaturesLeft = 10
 
@@ -105,7 +115,7 @@ class PreProcessingAlgorithm {
      * a row, it is unlikely to exist, and the algorithm can be terminated early to save time.
      */
     while (temperaturesLeft > 0 && conseqFailedAttempts < 3) {
-      val result = annealingAlgorithm.run(settings.iterations, random)
+      val result = annealingAlgorithm.run(settings.annealingIterations, random)
 
       if (result.isDefined) {
         annealingAlgorithm = result.get.cool
@@ -117,19 +127,48 @@ class PreProcessingAlgorithm {
       temperaturesLeft -= 1
     }
 
-    val finalDrawing = buildDrawing(adjustedDrawing.vertices, adjustedDrawing.edges, annealingAlgorithm)
-    val extraEdgeSet = extraEdges.toSet
-    finalDrawing.updateEdges(finalDrawing.edges.filterNot(e => extraEdgeSet.contains(e) || extraEdgeSet.contains((e._2, e._1))))
+    val originalEdgeSet = adjustedDrawing.edges.map(UnorderedPair(_)) diff extraEdges.map(UnorderedPair(_))
+    buildDrawing(adjustedDrawing.vertices, originalEdgeSet.map(_.asTuple), annealingAlgorithm)
+      .map(intToOriginal)
+      .cut
   }
 
-  private def buildDrawing(vertices: Vector[Int], edges: Vector[(Int, Int)], annealing: AnnealingProcess) = {
+  private def buildDrawing[S <: LayoutState[S]](vertices: Vector[Int], edges: Vector[(Int, Int)], annealing: AnnealingProcess[S]) = {
     require(!annealing.coordinates.exists(kv => kv._2.x < 0 || kv._2.y < 0), "Cannot build drawing from negative coordinates.")
     require(vertices.nonEmpty && annealing.coordinates.nonEmpty, "Cannot build drawing from empty vertex/coordinate set.")
-    val rectangles = vertices.map(annealing.rectangle)
-    val maxX = rectangles.maxBy(_.stop.x).stop.x
-    val maxY = rectangles.maxBy(_.stop.y).stop.y
 
-    StraightLineDrawing.adjustToZero(new StraightLineDrawing(vertices, edges, annealing.coordinates, maxX.toInt, maxY.toInt))
+    // Dimensions gets computed during cut.
+    val d = new StraightLineDrawing(vertices, edges, annealing.coordinates, 1, 1)
+    d.setSize(d.coordinateSize)
+  }
+
+  private def trimEdges(g: Graph[Int, UnDiEdge], drawing: StraightLineDrawing[Int]): (Graph[Int, UnDiEdge], StraightLineDrawing[Int]) = {
+    val singles = g.nodes.filter(_.degree == 0)
+    val isSingle = new mutable.HashSet[Int]()
+    for (s <- singles)
+      isSingle += s
+
+    val connected = new mutable.HashSet[Int]()
+    var trimmedGraph = g
+
+    def connect(single: Int): Unit = connected += single
+    def isConnected(v: Int) = !isSingle(v) || connected(v)
+
+    val trimmedEdges = drawing.edges.flatMap(e => {
+      val a = e._1
+      val b = e._2
+
+      if ((!isSingle(a) && !isSingle(b)) || (isSingle(a) || isSingle(b)) && (!isConnected(a) || !isConnected(b))) {
+        connect(a)
+        connect(b)
+        Some(e)
+      } else {
+        trimmedGraph = trimmedGraph - a~b
+        None
+      }
+    })
+
+    (trimmedGraph, drawing.updateEdges(trimmedEdges))
   }
 
 }

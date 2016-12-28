@@ -1,9 +1,8 @@
 package net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.common
 
-import net.cyndeline.rlcommon.math.geom.{Line, RPoint, Rectangle}
-import spire.math.Rational
+import net.cyndeline.rlcommon.math.geom.{Line, Point, Rectangle}
 
-private[straightLinePreProcess] abstract class IDLine(val id: Int, from: RPoint, to: RPoint) extends Line(from, to) {
+private[straightLinePreProcess] abstract class IDLine(val id: Int, from: Point, to: Point) extends Line(from, to) {
   def isEdge: Boolean
   def isVertex: Boolean
 }
@@ -11,7 +10,7 @@ private[straightLinePreProcess] abstract class IDLine(val id: Int, from: RPoint,
 /**
   * Associates a line segment with vertices for its start- and stop coordinates.
   */
-private[straightLinePreProcess] class EdgeLine(id: Int, val startVertex: Int, val stopVertex: Int, startC: RPoint, stopC: RPoint) extends IDLine(id, startC, stopC) {
+private[straightLinePreProcess] class EdgeLine(id: Int, val startVertex: Int, val stopVertex: Int, startC: Point, stopC: Point) extends IDLine(id, startC, stopC) {
   require(startVertex != stopVertex, s"Vertex $startVertex was specified as both start and stop in a line segment from $startC to $stopC")
   require(startVertex < stopVertex, "The start vertex must have a lower id than a stop vertex in edge lines.")
   require(startC != stopC, "Cannot begin and end edge line at same coordinate.")
@@ -19,14 +18,14 @@ private[straightLinePreProcess] class EdgeLine(id: Int, val startVertex: Int, va
   override def isEdge: Boolean = true
   override def isVertex: Boolean = false
 
-  def coordinateOf(v: Int): RPoint = {
+  def coordinateOf(v: Int): Point = {
     assert(v == startVertex || v == stopVertex)
     if (v == startVertex) startC
     else if (v == stopVertex) stopC
     else throw new Error(s"The vertex $v is not a member of $this")
   }
 
-  def adjust(v: Int, newCoordinate: RPoint) = {
+  def adjust(v: Int, newCoordinate: Point) = {
     val newStartC = if (v == startVertex) newCoordinate else startC
     val newStopC = if (v == stopVertex) newCoordinate else stopC
     EdgeLine(id, startVertex, stopVertex, newStartC, newStopC)
@@ -42,7 +41,7 @@ private[straightLinePreProcess] class EdgeLine(id: Int, val startVertex: Int, va
 }
 
 private[straightLinePreProcess] object EdgeLine {
-  def apply(id: Int, startVertex: Int, stopVertex: Int, startC: RPoint, stopC: RPoint) = {
+  def apply(id: Int, startVertex: Int, stopVertex: Int, startC: Point, stopC: Point) = {
     val start = Math.min(startVertex, stopVertex)
     val stop = Math.max(startVertex, stopVertex)
     val startCoordinate = if (start == startVertex) startC else stopC
@@ -51,11 +50,11 @@ private[straightLinePreProcess] object EdgeLine {
   }
 }
 
-private[straightLinePreProcess] class VertexLine(id: Int, val v: Int, val side: VSide, from: RPoint, to: RPoint) extends IDLine(id, from, to) {
+private[straightLinePreProcess] class VertexLine(id: Int, val v: Int, val side: VSide, from: Point, to: Point) extends IDLine(id, from, to) {
   override def isEdge: Boolean = false
   override def isVertex: Boolean = true
 
-  def adjustBy(x: Rational, y: Rational) = new VertexLine(id, v, side, from + (x, y), to + (x, y))
+  def adjustBy(x: Int, y: Int) = new VertexLine(id, v, side, from + (x, y), to + (x, y))
 
   override def toString: String = s"V($v, $side, (${from.x}, ${from.y})->(${to.x}, ${to.y})"
   override def equals(other: Any): Boolean = other match {
@@ -70,10 +69,10 @@ private[straightLinePreProcess] object VertexLine {
     val start = r.start
     val stop = r.stop
     Vector (
-      new VertexLine(nextId, v, Left, start, RPoint(start.x, stop.y)),
-      new VertexLine(nextId + 1, v, Bottom, RPoint(start.x, start.y), RPoint(stop.x, start.y)),
-      new VertexLine(nextId + 2, v, Right, RPoint(stop.x, start.y), stop),
-      new VertexLine(nextId + 3, v, Top, RPoint(start.x, stop.y), stop)
+      new VertexLine(nextId, v, Left, start, Point(start.x, stop.y)),
+      new VertexLine(nextId + 1, v, Bottom, Point(start.x, start.y), Point(stop.x, start.y)),
+      new VertexLine(nextId + 2, v, Right, Point(stop.x, start.y), stop),
+      new VertexLine(nextId + 3, v, Top, Point(start.x, stop.y), stop)
     )
   }
 }

@@ -1,7 +1,6 @@
 package net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.common
 
 import net.cyndeline.rlcommon.math.geom.{Line, Point}
-import spire.math.Rational
 
 /**
   * Given a vertex v and a set of neighbor coordinates, this class checks if any pair n1, n2 of neighbors form
@@ -57,7 +56,7 @@ object CollinearOverlap {
     var i = 0
     val s = sorted.size
 
-    def slope(i: Int, v: Vector[(Option[Rational], Point)]): Option[Rational] = v(i)._1
+    def slope(i: Int, v: Vector[(Option[Double], Point)]): Option[Double] = v(i)._1
 
     def isSingle(i: Int): Boolean = if (sorted.isDefinedAt(i + 1)) {
       slope(i, sorted) != slope(i + 1, sorted)

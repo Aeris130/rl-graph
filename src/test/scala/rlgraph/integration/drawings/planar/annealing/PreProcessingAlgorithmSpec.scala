@@ -2,7 +2,8 @@ package rlgraph.integration.drawings.planar.annealing
 
 import net.cyndeline.rlcommon.math.geom.{Dimensions, Point, Rectangle}
 import net.cyndeline.rlgraph.drawings.StraightLineDrawing
-import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.{PreProcessingAlgorithm, Settings}
+import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.costFunctions.{BorderLinesScore, DistributionScore, EdgeLengthScore}
+import net.cyndeline.rlgraph.drawings.planar.straightLinePreProcess.{DefaultState, PreProcessingAlgorithm, Settings}
 import rlgraph.SpecImports
 
 import scala.util.Random
@@ -14,6 +15,10 @@ class PreProcessingAlgorithmSpec extends SpecImports {
   private def algorithm = new PreProcessingAlgorithm()
   private def random = new Random(666)
 
+  private val defaultState = new DefaultState()
+  private val costFunctions = Vector(new EdgeLengthScore(1, 0), new BorderLinesScore(1), new DistributionScore(1, 20))
+  private val defaultSettings = Settings.default(defaultState, costFunctions)
+
   describe("PreProcessingAlgorithmSpec") {
 
     it ("should process an empty graph") {
@@ -22,7 +27,7 @@ class PreProcessingAlgorithmSpec extends SpecImports {
       val graph = Graph[Int, UnDiEdge]()
 
       When("processing the graph")
-      val drawing = algorithm.computeDrawing(graph, random, Settings.default)
+      val drawing = algorithm.computeDrawing(graph, random, defaultSettings)
 
       Then("an empty drawing should be returned")
       drawing.vertices should be ('empty)
@@ -40,7 +45,7 @@ class PreProcessingAlgorithmSpec extends SpecImports {
       val graph = Graph[Int, UnDiEdge](v)
 
       When("processing the graph")
-      val drawing = algorithm.computeDrawing(graph, random, Settings.default)
+      val drawing = algorithm.computeDrawing(graph, random, defaultSettings)
 
       Then("the drawing should contain the vertex")
       drawing.vertices should be (Vector(v))
@@ -59,7 +64,7 @@ class PreProcessingAlgorithmSpec extends SpecImports {
       val graph = Graph[Int, UnDiEdge](0~1, 2)
 
       When("processing the graph")
-      val drawing = algorithm.computeDrawing(graph, random, Settings.default)
+      val drawing = algorithm.computeDrawing(graph, random, defaultSettings)
 
       Then("a valid drawing should be produced")
       validate(drawing)
@@ -76,7 +81,7 @@ class PreProcessingAlgorithmSpec extends SpecImports {
       val graph = Graph[Int, UnDiEdge](0, 1, 2, 3, 4, 5)
 
       When("processing the graph")
-      val drawing = algorithm.computeDrawing(graph, random, Settings.default)
+      val drawing = algorithm.computeDrawing(graph, random, defaultSettings)
 
       Then("a valid drawing should be produced")
       validate(drawing)
@@ -86,39 +91,35 @@ class PreProcessingAlgorithmSpec extends SpecImports {
 
     }
 
-    it ("should process a graph with vertex rectangles") {
-
-      Given("a graph with vertices and rectangles")
-      val graph = Graph[Int, UnDiEdge](0~1, 1~2, 1~3, 3~4, 5~6, 7, 8)
-      val rectangles = Map[Int, Dimensions](
-        0 -> Dimensions(2, 3),
-        1 -> Dimensions(4, 4),
-        4 -> Dimensions(6, 5),
-        7 -> Dimensions(2, 2)
-      )
-
-      When("processing the graph")
-      val drawing = algorithm.computeDrawing(graph, random, Settings.defaultWithRectangles(rectangles))
-
-      Then("a valid drawing should be produced")
-      validate(drawing, rectangles)
-
-    }
-
     it ("should be deterministic") {
 
       Given("a graph with vertices")
       val graph = Graph[Int, UnDiEdge](0~1, 1~2, 1~3, 3~4, 5~6, 7, 8)
 
       When("processing the graph")
-      val drawing = algorithm.computeDrawing(graph, random, Settings.default)
+      val drawing = algorithm.computeDrawing(graph, random, defaultSettings)
 
       Then("subsequent processes should yield the same drawing")
       for (i <- 0 to 100) {
-        val newDrawing = algorithm.computeDrawing(graph, random, Settings.default)
+        val newDrawing = algorithm.computeDrawing(graph, random, defaultSettings)
         validate(newDrawing)
         newDrawing should equal (drawing)
       }
+
+    }
+
+    it ("should run with any vertex set") {
+
+      Given("a graph with vertices 3, 5, 22")
+      val graph = Graph[Int, UnDiEdge](3~5, 22)
+
+      When("processing the graph")
+      val drawing = algorithm.computeDrawing(graph, random, defaultSettings)
+
+      Then("the drawing should assign the original vertices its coordinates")
+      drawing.coordinates.keySet should contain(3)
+      drawing.coordinates.keySet should contain(5)
+      drawing.coordinates.keySet should contain(22)
 
     }
 

@@ -20,8 +20,8 @@ object ProduceDrawing {
 
     val edges = GraphCommons.outerEdges(graph).map(e => UnorderedPair(e._1, e._2)).map(up => (up._1, up._2))
     val vertices = coordinates.keySet.toVector.sorted
-    val width = coordinates.values.minBy(_.x).x
-    val height = coordinates.values.minBy(_.y).y
+    val width = coordinates.values.minBy(_.x).x + 1
+    val height = coordinates.values.minBy(_.y).y + 1
     new StraightLineDrawing(vertices, edges, coordinates, width, height)
   }
 

@@ -65,7 +65,7 @@ class ParallelCase[VType](b: Component[VType], children: Vector[Component[VType]
    * Can only be called while k1 contains only k1Singles.
    */
   private def collapseK1(sets: KSets[VType]): KSets[VType] = {
-    if (!sets.k1.isEmpty) {
+    if (sets.k1.nonEmpty) {
       val k1Components = sets.k1.toVector.map(_.asInstanceOf[K1Single[VType]].component)
       sets.removeAll(1).addTo(1, K1Collapse(k1Components))
     } else {
@@ -77,7 +77,7 @@ class ParallelCase[VType](b: Component[VType], children: Vector[Component[VType]
    * Can only be called while k2 contains only k1Singles.
    */
   private def collapseK2(sets: KSets[VType]): KSets[VType] = {
-    if (!sets.k2.isEmpty) {
+    if (sets.k2.nonEmpty) {
       val k2Components = sets.k2.toVector.map(_.asInstanceOf[K2Single[VType]].component)
       sets.removeAll(2).addTo(2, K2Collapse(k2Components))
     } else {
@@ -191,7 +191,7 @@ class ParallelCase[VType](b: Component[VType], children: Vector[Component[VType]
 
     } else { // |k3| even
 
-      if (!sets.k2.isEmpty) {
+      if (sets.k2.nonEmpty) {
         val singleComponent = K3IntoK2Collapse(components)
         current.addTo(2, singleComponent)
       } else {
@@ -207,7 +207,7 @@ class ParallelCase[VType](b: Component[VType], children: Vector[Component[VType]
   private def joinK4K5(sets: KSets[VType]): Option[KSets[VType]] = {
     if (sets.k4.size == 1 && sets.k5.size == 1) {
       var current = sets.removeAll(4).removeAll(5)
-      val compPos = new K4K5IntoK3WithGapCollapse(sets.k4.head.asInstanceOf[K4Single[VType]].component, sets.k5.head.asInstanceOf[K5Single[VType]].component)
+      val compPos = K4K5IntoK3WithGapCollapse(sets.k4.head.asInstanceOf[K4Single[VType]].component, sets.k5.head.asInstanceOf[K5Single[VType]].component)
       current = current.addTo(3, compPos)
       Some(current)
     } else {
@@ -217,16 +217,16 @@ class ParallelCase[VType](b: Component[VType], children: Vector[Component[VType]
 
   private def computeAugmentation(sets: KSets[VType]): Augmentation = {
     if (sets.k4.size == 1) {
-      if (sets.k2.size > 0 || sets.k3.size > 0) Augmentation(2, 0)
+      if (sets.k2.nonEmpty || sets.k3.nonEmpty) Augmentation(2, 0)
       else Augmentation(1, 0)
 
     } else if (sets.k5.size == 1) {
-      if (sets.k1.size > 0 || sets.k3.size > 0) Augmentation(1, 0)
+      if (sets.k1.nonEmpty || sets.k3.nonEmpty) Augmentation(1, 0)
       else Augmentation(2, 0)
 
     } else {
-      if (sets.k3.size > 0 || (sets.k1.size > 0 && sets.k2.size > 0)) Augmentation(2, 1)
-      else if (sets.k1.size > 0) Augmentation(1, 1)
+      if (sets.k3.nonEmpty || (sets.k1.nonEmpty && sets.k2.nonEmpty)) Augmentation(2, 1)
+      else if (sets.k1.nonEmpty) Augmentation(1, 1)
       else Augmentation(2, 2)
     }
   }

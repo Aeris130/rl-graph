@@ -15,7 +15,7 @@ class Component[VType](val node: SPQRNode[VType], augmentations: Set[Augmentatio
 
   def containsAugmentation(x: Int, y: Int): Boolean = augmentations contains Augmentation(x, y)
 
-  def containsAugmentations(as: (Int, Int)*): Boolean = as.filterNot(a => augmentations.contains(Augmentation(a._1, a._2))).isEmpty
+  def containsAugmentations(as: (Int, Int)*): Boolean = as.forall(a => augmentations.contains(Augmentation(a._1, a._2)))
 
 }
 
